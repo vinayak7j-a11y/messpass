@@ -10,6 +10,10 @@ export default function Customers() {
   const [plans, setPlans] = useState([])
   const [showRenew, setShowRenew] = useState(false)
   const [renewing, setRenewing] = useState(false)
+  const [showAdjust, setShowAdjust] = useState(false)
+  const [adjustAction, setAdjustAction] = useState('')
+  const [adjustReason, setAdjustReason] = useState('')
+  const [adjusting, setAdjusting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('mess')
@@ -40,6 +44,29 @@ export default function Customers() {
       setShowRenew(false)
     }
     setRenewing(false)
+  }
+
+  function openAdjust(action) {
+    setAdjustAction(action)
+    setAdjustReason('')
+    setShowAdjust(true)
+  }
+
+  async function submitAdjust() {
+    if (!adjustReason.trim()) return
+    setAdjusting(true)
+    const res = await fetch('/api/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: selected._id, action: adjustAction, reason: adjustReason, messId })
+    })
+    const data = await res.json()
+    if (data.customer) {
+      setSelected(data.customer)
+      setCustomers(customers.map(c => c._id === data.customer._id ? data.customer : c))
+      setShowAdjust(false)
+    }
+    setAdjusting(false)
   }
 
   async function fetchCustomers(mid) {
@@ -100,9 +127,45 @@ export default function Customers() {
           </div>
 
           <button onClick={() => setShowRenew(true)}
-            style={{width:'100%',padding:14,borderRadius:14,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer',marginBottom:16}}>
+            style={{width:'100%',padding:14,borderRadius:14,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer',marginBottom:10}}>
             Renew subscription
           </button>
+
+          <div style={{display:'flex',gap:8,marginBottom:16}}>
+            <button onClick={() => openAdjust('+1')}
+              style={{flex:1,padding:12,borderRadius:12,background:'white',color:'#0F6E56',fontSize:13,fontWeight:500,border:'1px solid #0F6E56',cursor:'pointer'}}>
+              +1 Meal
+            </button>
+            <button onClick={() => openAdjust('-1')}
+              style={{flex:1,padding:12,borderRadius:12,background:'white',color:'#cc0000',fontSize:13,fontWeight:500,border:'1px solid #fcc',cursor:'pointer'}}>
+              -1 Meal
+            </button>
+          </div>
+
+          {showAdjust && (
+            <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',zIndex:50}} onClick={() => setShowAdjust(false)}>
+              <div style={{background:'white',borderRadius:'20px 20px 0 0',padding:20,width:'100%'}} onClick={e => e.stopPropagation()}>
+                <div style={{fontWeight:600,fontSize:16,marginBottom:4}}>
+                  {adjustAction === '+1' ? 'Add 1 meal' : 'Deduct 1 meal'}
+                </div>
+                <div style={{fontSize:12,color:'#999',marginBottom:14}}>This will be recorded in the audit log</div>
+                <label style={{fontSize:12,color:'#999',display:'block',marginBottom:4}}>Reason</label>
+                <input type="text" placeholder="e.g. Forgot phone, Duplicate scan, System error"
+                  value={adjustReason} onChange={e => setAdjustReason(e.target.value)}
+                  style={{width:'100%',border:'1px solid #eee',borderRadius:10,padding:'10px 14px',fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:14}} />
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={submitAdjust} disabled={adjusting || !adjustReason.trim()}
+                    style={{flex:1,padding:12,borderRadius:10,background:adjusting?'#9FE1CB':'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer'}}>
+                    {adjusting ? 'Saving...' : 'Confirm'}
+                  </button>
+                  <button onClick={() => setShowAdjust(false)}
+                    style={{flex:1,padding:12,borderRadius:10,background:'#f5f5f0',border:'none',fontSize:14,color:'#666',cursor:'pointer'}}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {showRenew && (
             <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',zIndex:50}} onClick={() => setShowRenew(false)}>
