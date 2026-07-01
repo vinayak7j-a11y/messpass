@@ -18,6 +18,7 @@ export default function Dashboard() {
         {label:'Pending approvals', href:'/dashboard/approvals'},
         {label:'Manage plans', href:'/dashboard/plans'},
         {label:'QR and Poster', href:'/dashboard/qr'},
+        {label:'Mess settings', href:'/dashboard/settings'},
       ]
 
       const nav = [
