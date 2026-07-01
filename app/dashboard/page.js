@@ -72,8 +72,8 @@ export default function Dashboard() {
           <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
             <div style="font-weight:500;font-size:14px;margin-bottom:12px">Quick actions</div>
             ${actions.map(a => `
-              <a href="${a.href}" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:#f5f5f0;margin-bottom:8px;text-decoration:none;color:#333;font-size:14px">
-                <span>${a.label}</span><span style="color:#ccc">→</span>
+              <a href="${a.href}" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:${a.highlight ? '#FAEEDA' : '#f5f5f0'};margin-bottom:8px;text-decoration:none;color:${a.highlight ? '#854F0B' : '#333'};font-size:14px;font-weight:${a.highlight ? '600' : '400'};border:${a.highlight ? '1px solid #FAC775' : 'none'}">
+                <span>${a.label}</span><span style="color:${a.highlight ? '#854F0B' : '#ccc'}">→</span>
               </a>
             `).join('')}
           </div>

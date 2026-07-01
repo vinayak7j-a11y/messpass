@@ -1,21 +1,56 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function Approvals() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [flash, setFlash] = useState(false)
+  const messIdRef = useRef(null)
+  const prevCountRef = useRef(0)
+  const audioCtxRef = useRef(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('mess')
     if (!stored) { window.location.href = '/'; return }
     const m = JSON.parse(stored)
-    fetchPending(m.messId)
+    messIdRef.current = m.messId
+    fetchPending(m.messId, true)
+
+    const interval = setInterval(() => fetchPending(m.messId, false), 5000)
+    return () => clearInterval(interval)
   }, [])
 
-  async function fetchPending(messId) {
+  function playPing() {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      }
+      const ctx = audioCtxRef.current
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.15, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.4)
+    } catch (e) {}
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100])
+  }
+
+  async function fetchPending(messId, isInitial) {
     const res = await fetch('/api/customers?messId=' + messId + '&status=pending')
     const data = await res.json()
-    if (data.customers) setCustomers(data.customers)
+    if (data.customers) {
+      if (!isInitial && data.customers.length > prevCountRef.current) {
+        playPing()
+        setFlash(true)
+        setTimeout(() => setFlash(false), 1500)
+      }
+      prevCountRef.current = data.customers.length
+      setCustomers(data.customers)
+    }
     setLoading(false)
   }
 
@@ -25,7 +60,11 @@ export default function Approvals() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ customerId, status: 'active' })
     })
-    setCustomers(customers.filter(c => c._id !== customerId))
+    setCustomers(prev => {
+      const next = prev.filter(c => c._id !== customerId)
+      prevCountRef.current = next.length
+      return next
+    })
   }
 
   async function handleReject(customerId) {
@@ -34,11 +73,15 @@ export default function Approvals() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ customerId, status: 'rejected' })
     })
-    setCustomers(customers.filter(c => c._id !== customerId))
+    setCustomers(prev => {
+      const next = prev.filter(c => c._id !== customerId)
+      prevCountRef.current = next.length
+      return next
+    })
   }
 
   return (
-    <div style={{minHeight:'100vh',background:'#f5f5f0',paddingBottom:80}}>
+    <div style={{minHeight:'100vh',background: flash ? '#FAEEDA' : '#f5f5f0',paddingBottom:80,transition:'background 0.3s ease'}}>
       <div style={{background:'white',padding:16,display:'flex',alignItems:'center',gap:12,boxShadow:'0 1px 3px rgba(0,0,0,0.08)'}}>
         <a href="/dashboard" style={{textDecoration:'none',color:'#333',fontSize:20}}>←</a>
         <div style={{fontWeight:500,fontSize:16}}>Pending Approvals</div>
@@ -56,7 +99,7 @@ export default function Approvals() {
           <div style={{background:'white',borderRadius:16,padding:32,textAlign:'center'}}>
             <div style={{fontSize:32,marginBottom:8}}>✅</div>
             <div style={{fontWeight:500,marginBottom:4}}>All caught up</div>
-            <div style={{fontSize:13,color:'#999'}}>No pending registrations</div>
+            <div style={{fontSize:13,color:'#999'}}>New registrations will alert you here</div>
           </div>
         )}
 
