@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 const TAGLINES = [
   'Ghar jaisa khana, roz',
@@ -10,13 +9,13 @@ const TAGLINES = [
 ]
 
 export default function RegisterMess() {
-  const router = useRouter()
   const [form, setForm] = useState({
     name: '', ownerName: '', phone: '', address: '', password: '', tagline: ''
   })
   const [customTagline, setCustomTagline] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,13 +29,27 @@ export default function RegisterMess() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error); setLoading(false); return }
-      alert(`Mess registered! Your Mess ID: ${data.messId}`)
-      router.push('/')
+      setSuccess(data.messId)
     } catch {
       setError('Something went wrong')
       setLoading(false)
     }
   }
+
+  if (success) return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{background:'#f5f5f0'}}>
+      <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{background:'#E1F5EE', border:'3px solid #9FE1CB', fontSize:40}}>✓</div>
+      <h1 className="text-2xl font-semibold mb-2" style={{color:'#0F6E56'}}>Mess registered!</h1>
+      <p className="text-sm text-gray-500 mb-6">Your mess is ready. Save this ID somewhere safe.</p>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mb-6">
+        <div className="text-xs text-gray-500 mb-2">Your Mess ID</div>
+        <div className="text-lg font-mono font-semibold" style={{color:'#1a1a1a'}}>{success}</div>
+      </div>
+      <a href="/" className="w-full max-w-sm py-4 rounded-2xl text-white font-medium text-base block text-center" style={{background:'#0F6E56'}}>
+        Go to login
+      </a>
+    </div>
+  )
 
   return (
     <div className="min-h-screen px-6 py-10" style={{background:'#f5f5f0'}}>
@@ -52,7 +65,7 @@ export default function RegisterMess() {
           { key: 'ownerName', label: 'Your name', placeholder: 'Ramesh Sharma' },
           { key: 'phone', label: 'Phone number', placeholder: '98765 43210', type: 'tel' },
           { key: 'address', label: 'Address', placeholder: '12 Sudama Nagar, Indore' },
-          { key: 'password', label: 'Password', placeholder: 'Create a password', type: 'password' },
+          { key: 'password', label: 'Password (min 6 characters)', placeholder: 'Create a password', type: 'password' },
         ].map(f => (
           <div key={f.key} className="bg-white rounded-2xl p-4">
             <label className="text-xs text-gray-500 mb-1 block">{f.label}</label>
