@@ -36,6 +36,29 @@ export default function Dashboard() {
         {label:'Meals today', value: String(data.mealsToday ?? 0), color:'#0F6E56'},
       ]
 
+      const plansRes = await fetch('/api/plans?messId=' + mess.messId)
+      const plansData = await plansRes.json()
+      const hasPlans = (plansData.plans && plansData.plans.length > 0)
+      const hasCustomers = (data.total ?? 0) > 0
+
+      const onboardingHtml = (!hasPlans || !hasCustomers) ? `
+        <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);border:1px solid #E1F5EE">
+          <div style="font-weight:600;font-size:14px;margin-bottom:12px;color:#0F6E56">Getting started</div>
+          <a href="/dashboard/plans" style="display:flex;align-items:center;gap:10px;padding:10px 0;text-decoration:none;color:#333;border-bottom:1px solid #f5f5f0">
+            <span style="width:22px;height:22px;border-radius:50%;border:2px solid ${hasPlans ? '#0F6E56' : '#ccc'};background:${hasPlans ? '#0F6E56' : 'white'};display:flex;align-items:center;justify-content:center;font-size:12px;color:white;flex-shrink:0">${hasPlans ? '✓' : ''}</span>
+            <span style="font-size:14px;text-decoration:${hasPlans ? 'line-through' : 'none'};color:${hasPlans ? '#999' : '#333'}">Create your first meal plan</span>
+          </a>
+          <a href="/dashboard/qr" style="display:flex;align-items:center;gap:10px;padding:10px 0;text-decoration:none;color:#333;border-bottom:1px solid #f5f5f0">
+            <span style="width:22px;height:22px;border-radius:50%;border:2px solid #ccc;background:white;display:flex;align-items:center;justify-content:center;font-size:12px;color:white;flex-shrink:0"></span>
+            <span style="font-size:14px;color:#333">Download and print your QR poster</span>
+          </a>
+          <a href="/dashboard/qr" style="display:flex;align-items:center;gap:10px;padding:10px 0;text-decoration:none;color:#333">
+            <span style="width:22px;height:22px;border-radius:50%;border:2px solid ${hasCustomers ? '#0F6E56' : '#ccc'};background:${hasCustomers ? '#0F6E56' : 'white'};display:flex;align-items:center;justify-content:center;font-size:12px;color:white;flex-shrink:0">${hasCustomers ? '✓' : ''}</span>
+            <span style="font-size:14px;text-decoration:${hasCustomers ? 'line-through' : 'none'};color:${hasCustomers ? '#999' : '#333'}">Get your first customer to scan and register</span>
+          </a>
+        </div>
+      ` : ''
+
       function escapeHtml(str) {
         const div = document.createElement('div')
         div.textContent = str
@@ -77,6 +100,8 @@ export default function Dashboard() {
               </div>
             `).join('')}
           </div>
+
+          ${onboardingHtml}
 
           <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
             <div style="font-weight:500;font-size:14px;margin-bottom:12px">Quick actions</div>
