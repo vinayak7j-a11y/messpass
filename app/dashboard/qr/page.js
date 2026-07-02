@@ -28,8 +28,9 @@ export default function QRPage() {
   async function generateQR(messId) {
     const url = window.location.origin + '/register/' + messId
     const dataUrl = await QRCode.toDataURL(url, {
-      width: 400,
+      width: 1000,
       margin: 1,
+      errorCorrectionLevel: 'H',
       color: { dark: '#1a1a1a', light: '#ffffff' }
     })
     setQrDataUrl(dataUrl)
@@ -38,76 +39,124 @@ export default function QRPage() {
   function downloadPoster() {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    const W = 800, H = 1100
+    // A4 ratio at print resolution (2480x3508 = A4 @ 300dpi), scaled down to keep file size reasonable
+    const W = 1240, H = 1754
     canvas.width = W
     canvas.height = H
 
     ctx.fillStyle = '#f5f5f0'
     ctx.fillRect(0, 0, W, H)
 
+    // Header
     ctx.fillStyle = '#0F6E56'
-    ctx.fillRect(0, 0, W, 240)
+    ctx.fillRect(0, 0, W, 340)
 
     ctx.fillStyle = 'white'
     ctx.beginPath()
-    ctx.arc(W/2, 90, 50, 0, Math.PI*2)
+    ctx.arc(W/2, 130, 70, 0, Math.PI*2)
     ctx.fill()
     ctx.fillStyle = '#0F6E56'
-    ctx.font = 'bold 48px sans-serif'
+    ctx.font = 'bold 68px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText(mess.name.charAt(0).toUpperCase(), W/2, 106)
+    ctx.fillText(mess.name.charAt(0).toUpperCase(), W/2, 152)
 
     ctx.fillStyle = 'white'
-    ctx.font = 'bold 40px sans-serif'
-    ctx.fillText(mess.name, W/2, 175)
+    ctx.font = 'bold 58px sans-serif'
+    ctx.fillText(mess.name, W/2, 250)
 
     if (tagline) {
       ctx.fillStyle = '#9FE1CB'
-      ctx.font = 'italic 22px sans-serif'
-      ctx.fillText(tagline, W/2, 210)
+      ctx.font = 'italic 30px sans-serif'
+      ctx.fillText(tagline, W/2, 300)
     }
 
-    ctx.fillStyle = '#666'
-    ctx.font = '500 26px sans-serif'
-    ctx.fillText('Scan to register or record your meal', W/2, 300)
+    ctx.fillStyle = '#333'
+    ctx.font = '600 36px sans-serif'
+    ctx.fillText('Scan to register or mark your meal', W/2, 420)
 
     const img = new Image()
     img.onload = () => {
-      const qrSize = 420
-      ctx.drawImage(img, (W-qrSize)/2, 330, qrSize, qrSize)
+      const qrSize = 560
+      const qrX = (W - qrSize) / 2
+      const qrY = 460
+
+      // QR white card with border
+      ctx.fillStyle = 'white'
+      ctx.fillRect(qrX - 30, qrY - 30, qrSize + 60, qrSize + 60)
+      ctx.strokeStyle = '#eee'
+      ctx.lineWidth = 2
+      ctx.strokeRect(qrX - 30, qrY - 30, qrSize + 60, qrSize + 60)
+      ctx.drawImage(img, qrX, qrY, qrSize, qrSize)
 
       ctx.fillStyle = '#666'
-      ctx.font = '22px sans-serif'
-      ctx.fillText(mess.address || '', W/2, 800)
+      ctx.font = '30px sans-serif'
+      ctx.fillText(mess.address || '', W/2, qrY + qrSize + 90)
 
+      // Instructions section
+      const stepsY = qrY + qrSize + 150
+      ctx.fillStyle = 'white'
+      ctx.fillRect(60, stepsY, W - 120, 420)
+      ctx.strokeStyle = '#eee'
+      ctx.strokeRect(60, stepsY, W - 120, 420)
+
+      ctx.fillStyle = '#1a1a1a'
+      ctx.font = 'bold 34px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('How to use', 100, stepsY + 60)
+
+      const steps = [
+        ['1', 'Open your phone camera and point it at this QR code'],
+        ['2', 'First time here? Fill your name and pick a meal plan'],
+        ['3', 'Already registered? Just tap once — your meal is marked instantly'],
+        ['4', 'Show your payment to the mess owner to get approved'],
+      ]
+
+      steps.forEach((s, i) => {
+        const y = stepsY + 120 + (i * 75)
+        ctx.fillStyle = '#0F6E56'
+        ctx.beginPath()
+        ctx.arc(130, y - 12, 26, 0, Math.PI*2)
+        ctx.fill()
+        ctx.fillStyle = 'white'
+        ctx.font = 'bold 26px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(s[0], 130, y - 3)
+
+        ctx.fillStyle = '#333'
+        ctx.font = '28px sans-serif'
+        ctx.textAlign = 'left'
+        ctx.fillText(s[1], 175, y)
+      })
+
+      // Footer brand strip
       ctx.fillStyle = '#04342C'
-      ctx.fillRect(0, 950, W, 150)
+      ctx.fillRect(0, H - 170, W, 170)
 
       ctx.fillStyle = '#9FE1CB'
-      ctx.font = '18px sans-serif'
+      ctx.font = '24px sans-serif'
       ctx.textAlign = 'left'
-      ctx.fillText('Get MessPass for your mess', 60, 1010)
+      ctx.fillText('Get MessPass for your mess', 80, H - 100)
       ctx.fillStyle = 'white'
-      ctx.font = 'bold 30px sans-serif'
-      ctx.fillText('92852 73124', 60, 1050)
+      ctx.font = 'bold 40px sans-serif'
+      ctx.fillText('92852 73124', 80, H - 50)
 
       ctx.fillStyle = '#5DCAA5'
-      ctx.font = '16px sans-serif'
+      ctx.font = '20px sans-serif'
       ctx.textAlign = 'right'
-      ctx.fillText('Powered by', W-60, 1010)
+      ctx.fillText('Powered by', W - 80, H - 100)
       ctx.fillStyle = 'white'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText('MessPass', W-60, 1045)
+      ctx.font = 'bold 32px sans-serif'
+      ctx.fillText('MessPass', W - 80, H - 55)
 
       const link = document.createElement('a')
       link.download = mess.name.replace(/\s+/g,'_') + '_QR_Poster.png'
-      link.href = canvas.toDataURL('image/png')
+      link.href = canvas.toDataURL('image/png', 1.0)
       link.click()
     }
     img.src = qrDataUrl
   }
 
-  if (!mess) return null
+    if (!mess) return null
 
   return (
     <div style={{minHeight:'100vh',background:'#f5f5f0',paddingBottom:80}}>
