@@ -62,7 +62,10 @@ export default function Dashboard() {
               <div style="font-size:12px;color:#999">${mess.messId}</div>
             </div>
           </div>
-          <button id="logout-btn" style="font-size:12px;color:#999;border:1px solid #eee;border-radius:8px;padding:6px 12px;background:white;cursor:pointer">Logout</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="install-btn" style="display:none;font-size:12px;color:white;border:none;border-radius:8px;padding:6px 12px;background:#0F6E56;cursor:pointer;font-weight:500">Install app</button>
+            <button id="logout-btn" style="font-size:12px;color:#999;border:1px solid #eee;border-radius:8px;padding:6px 12px;background:white;cursor:pointer">Logout</button>
+          </div>
         </div>
 
         <div style="padding:20px 16px;display:flex;flex-direction:column;gap:16px">
@@ -104,9 +107,29 @@ export default function Dashboard() {
         localStorage.removeItem('mess')
         window.location.href = '/'
       }
+
+      const installBtn = document.getElementById('install-btn')
+      if (window.deferredInstallPrompt) {
+        installBtn.style.display = 'block'
+      }
+      installBtn.onclick = async () => {
+        if (window.deferredInstallPrompt) {
+          window.deferredInstallPrompt.prompt()
+          await window.deferredInstallPrompt.userChoice
+          window.deferredInstallPrompt = null
+          installBtn.style.display = 'none'
+        }
+      }
     }
 
     load()
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      window.deferredInstallPrompt = e
+      const btn = document.getElementById('install-btn')
+      if (btn) btn.style.display = 'block'
+    })
   }, [])
 
   return <div ref={ref} style={{minHeight:'100vh',background:'#f5f5f0',paddingBottom:80}} />

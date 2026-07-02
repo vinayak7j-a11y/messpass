@@ -4,6 +4,13 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'MessPass',
   description: 'Digital meal tracking for mess owners',
+  manifest: '/manifest.json',
+  themeColor: '#0F6E56',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'MessPass',
+  },
 }
 
 export default function RootLayout({
@@ -13,7 +20,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{margin:0,padding:0,background:'#f5f5f0'}}>{children}</body>
+      <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+      </head>
+      <body style={{margin:0,padding:0,background:'#f5f5f0'}}>
+        {children}
+        <script dangerouslySetInnerHTML={{__html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function(){})
+            })
+          }
+        `}} />
+      </body>
     </html>
   )
 }
