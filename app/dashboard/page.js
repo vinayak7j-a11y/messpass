@@ -124,6 +124,36 @@ export default function Dashboard() {
 
     load()
 
+    let prevPending = null
+    let audioCtx = null
+
+    function playPing() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.frequency.value = 880
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4)
+        osc.start()
+        osc.stop(audioCtx.currentTime + 0.4)
+      } catch (e) {}
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100])
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/dashboard?messId=' + mess.messId)
+        const d = await res.json()
+        if (prevPending !== null && d.pending > prevPending) {
+          playPing()
+        }
+        prevPending = d.pending
+      } catch (e) {}
+    }, 8000)
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
       window.deferredInstallPrompt = e
