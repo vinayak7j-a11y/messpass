@@ -20,8 +20,14 @@ export async function GET(req) {
     return NextResponse.json({ customer: customer || null })
   }
 
-  const mess = await Mess.findOne({ messId })
-  if (!mess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
+  const messDoc = await Mess.findOne({ messId })
+  if (!messDoc) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
+  const mess = {
+    messId: messDoc.messId,
+    name: messDoc.name,
+    tagline: messDoc.tagline,
+    address: messDoc.address
+  }
   const plans = await Plan.find({ messId, isActive: true })
   return NextResponse.json({ mess, plans })
 }
@@ -52,7 +58,9 @@ export async function POST(req) {
       messId, name, mobile, planId,
       totalMeals: plan.totalMeals,
       remainingMeals: plan.totalMeals,
-      status: 'pending'
+      status: 'pending',
+      consentGiven: true,
+      consentTimestamp: new Date()
     })
     return NextResponse.json({ success: true, customer }, { status: 201 })
   } catch (err) {

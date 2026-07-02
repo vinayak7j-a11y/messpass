@@ -8,6 +8,7 @@ export default function Register({ params }) {
   const [stage, setStage] = useState('loading')
   const [mobile, setMobile] = useState('')
   const [form, setForm] = useState({ name: '', planId: '' })
+  const [consent, setConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [customer, setCustomer] = useState(null)
@@ -109,6 +110,7 @@ export default function Register({ params }) {
 
   async function handleRegisterSubmit() {
     if (!form.name || !form.planId) { setError('All fields required'); return }
+    if (!consent) { setError('Please agree to the data usage terms to continue'); return }
     setLoading(true); setError('')
     const res = await fetch('/api/register', {
       method: 'POST',
@@ -240,6 +242,17 @@ export default function Register({ params }) {
               <div style={{fontWeight:600,fontSize:16,color:'#0F6E56'}}>&#8377;{p.price}</div>
             </div>
           ))}
+        </div>
+
+        <div onClick={() => setConsent(!consent)}
+          style={{display:'flex',alignItems:'flex-start',gap:10,padding:14,background:'white',borderRadius:14,marginBottom:14,cursor:'pointer'}}>
+          <div style={{width:18,height:18,borderRadius:5,border:'2px solid',borderColor: consent ? '#0F6E56' : '#ccc',background: consent ? '#0F6E56' : 'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1}}>
+            {consent && <span style={{color:'white',fontSize:12,fontWeight:700}}>✓</span>}
+          </div>
+          <div style={{fontSize:12,color:'#666',lineHeight:1.5}}>
+            I agree that my name and mobile number will be used by {mess.name} to manage my meal subscription.{' '}
+            <a href="/privacy" target="_blank" onClick={e => e.stopPropagation()} style={{color:'#0F6E56',textDecoration:'underline'}}>Read privacy policy</a>
+          </div>
         </div>
 
         {error && <div style={{color:'#cc0000',fontSize:13,marginBottom:12,textAlign:'center'}}>{error}</div>}
