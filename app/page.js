@@ -64,6 +64,9 @@ export default function LoginPage() {
       <p style={{textAlign:'center',fontSize:14,color:'#999',marginTop:24}}>
         New mess? <a href="/register-mess" style={{color:'#0F6E56',fontWeight:500}}>Register here</a>
       </p>
+      <p style={{textAlign:'center',fontSize:13,color:'#999',marginTop:10}}>
+        <a href="/forgot-password" style={{color:'#999'}}>Forgot password?</a>
+      </p>
     </div>
   )
 }
