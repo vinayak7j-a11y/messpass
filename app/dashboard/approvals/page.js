@@ -67,7 +67,8 @@ export default function Approvals() {
     })
   }
 
-  async function handleReject(customerId) {
+  async function handleReject(customerId, name) {
+    if (!confirm('Reject ' + name + '? This can be undone later from Rejected customers.')) return
     await fetch('/api/customers', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -123,7 +124,7 @@ export default function Approvals() {
                 style={{flex:1,padding:'10px',borderRadius:10,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer'}}>
                 Approve
               </button>
-              <button type="button" onClick={() => handleReject(c._id)}
+              <button type="button" onClick={() => handleReject(c._id, c.name)}
                 style={{flex:1,padding:'10px',borderRadius:10,background:'white',color:'#cc0000',fontSize:14,fontWeight:500,border:'1px solid #fcc',cursor:'pointer'}}>
                 Reject
               </button>
