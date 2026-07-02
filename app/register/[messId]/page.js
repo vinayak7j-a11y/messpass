@@ -76,15 +76,20 @@ export default function Register({ params }) {
 
   async function doScan(mobileNumber) {
     setLoading(true)
-    const scanRes = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messId, mobile: mobileNumber })
-    })
-    const scanData = await scanRes.json()
-    setCustomer(scanData.customer)
-    setScanResult(scanData)
-    setStage('scan_result')
+    try {
+      const scanRes = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messId, mobile: mobileNumber })
+      })
+      const scanData = await scanRes.json()
+      setCustomer(scanData.customer || null)
+      setScanResult(scanData)
+      setStage('scan_result')
+    } catch (e) {
+      setScanResult({ error: 'not_found' })
+      setStage('scan_result')
+    }
     setLoading(false)
   }
 
@@ -179,6 +184,30 @@ export default function Register({ params }) {
   // STAGE: scan result
   if (stage === 'scan_result') {
     const err = scanResult?.error
+    if (err === 'pending') return (
+      <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+        <div style={{width:100,height:100,borderRadius:'50%',background:'#FAEEDA',border:'3px solid #FAC775',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:48}}>⏳</div>
+        <div style={{fontSize:22,fontWeight:600,color:'#854F0B',marginBottom:8}}>Still pending approval</div>
+        <div style={{fontSize:14,color:'#999',marginBottom:24}}>The mess owner hasn't approved your registration yet.</div>
+        <button type="button" onClick={() => setStage('closed')} style={{padding:'12px 32px',borderRadius:12,background:'#0F6E56',color:'white',fontSize:15,fontWeight:500,border:'none',cursor:'pointer'}}>Done</button>
+      </div>
+    )
+    if (err === 'rejected') return (
+      <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+        <div style={{width:100,height:100,borderRadius:'50%',background:'#FCEBEB',border:'3px solid #F09595',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:48}}>✗</div>
+        <div style={{fontSize:22,fontWeight:600,color:'#cc0000',marginBottom:8}}>Registration was rejected</div>
+        <div style={{fontSize:14,color:'#999',marginBottom:24}}>Please contact the mess owner for more information.</div>
+        <button type="button" onClick={() => setStage('closed')} style={{padding:'12px 32px',borderRadius:12,background:'#0F6E56',color:'white',fontSize:15,fontWeight:500,border:'none',cursor:'pointer'}}>Done</button>
+      </div>
+    )
+    if (err === 'not_found') return (
+      <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+        <div style={{width:100,height:100,borderRadius:'50%',background:'#FCEBEB',border:'3px solid #F09595',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:48}}>⚠️</div>
+        <div style={{fontSize:22,fontWeight:600,color:'#cc0000',marginBottom:8}}>Something went wrong</div>
+        <div style={{fontSize:14,color:'#999',marginBottom:24}}>We couldn't find your registration. Please try again.</div>
+        <button type="button" onClick={forgetDevice} style={{padding:'12px 32px',borderRadius:12,background:'#0F6E56',color:'white',fontSize:15,fontWeight:500,border:'none',cursor:'pointer'}}>Start over</button>
+      </div>
+    )
     if (err === 'duplicate') return (
       <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
         <div style={{width:100,height:100,borderRadius:'50%',background:'#FCEBEB',border:'3px solid #F09595',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:48}}>🚫</div>

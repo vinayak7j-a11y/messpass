@@ -24,7 +24,14 @@ export async function PATCH(req) {
     const updates = {}
     if (body.name) updates.name = body.name.trim()
     if (body.ownerName) updates.ownerName = body.ownerName.trim()
-    if (body.phone) updates.phone = normalizePhone(body.phone)
+    if (body.phone) {
+      const newPhone = normalizePhone(body.phone)
+      const existing = await Mess.findOne({ phone: newPhone, messId: { $ne: messId } })
+      if (existing) {
+        return NextResponse.json({ error: 'This phone number is already used by another mess' }, { status: 400 })
+      }
+      updates.phone = newPhone
+    }
     if (body.address) updates.address = body.address.trim()
     if (body.tagline !== undefined) updates.tagline = body.tagline.trim()
     if (body.newPassword) {
