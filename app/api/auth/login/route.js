@@ -3,10 +3,16 @@ import Mess from '@/lib/models/Mess'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 
+function normalizePhone(phone) {
+  return (phone || '').replace(/\s+/g, '').replace(/[-()]/g, '').trim()
+}
+
 export async function POST(req) {
   try {
     await connectDB()
-    const { phone, password } = await req.json()
+    const body = await req.json()
+    const phone = normalizePhone(body.phone)
+    const password = body.password || ''
 
     if (!phone || !password) {
       return NextResponse.json({ error: 'Phone and password required' }, { status: 400 })
@@ -36,7 +42,7 @@ export async function POST(req) {
     })
 
   } catch (err) {
-    console.error('LOGIN ERROR:', err)
-    return NextResponse.json({ error: 'Server error', debug: err.message }, { status: 500 })
+    console.error('LOGIN ERROR:', err.message)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
