@@ -36,12 +36,18 @@ export default function Dashboard() {
         {label:'Meals today', value: String(data.mealsToday ?? 0), color:'#0F6E56'},
       ]
 
+      function escapeHtml(str) {
+        const div = document.createElement('div')
+        div.textContent = str
+        return div.innerHTML
+      }
+
       const mealLogHtml = (data.recentMeals && data.recentMeals.length > 0)
         ? data.recentMeals.map(m => {
             const time = new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
             return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f0;font-size:13px">' +
-              '<span style="font-weight:500">' + m.name + '</span>' +
-              '<span style="color:#999;text-transform:capitalize">' + m.mealType + '</span>' +
+              '<span style="font-weight:500">' + escapeHtml(m.name) + '</span>' +
+              '<span style="color:#999;text-transform:capitalize">' + escapeHtml(m.mealType) + '</span>' +
               '<span style="color:#bbb;font-size:11px">' + time + '</span>' +
             '</div>'
           }).join('')
@@ -50,9 +56,9 @@ export default function Dashboard() {
       ref.current.innerHTML = `
         <div style="background:white;padding:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
           <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:40px;height:40px;border-radius:10px;background:#0F6E56;display:flex;align-items:center;justify-content:center;color:white;font-weight:500;font-size:18px">${mess.name.charAt(0)}</div>
+            <div style="width:40px;height:40px;border-radius:10px;background:#0F6E56;display:flex;align-items:center;justify-content:center;color:white;font-weight:500;font-size:18px">${escapeHtml(mess.name.charAt(0))}</div>
             <div>
-              <div style="font-weight:500;font-size:14px">${mess.name}</div>
+              <div style="font-weight:500;font-size:14px">${escapeHtml(mess.name)}</div>
               <div style="font-size:12px;color:#999">${mess.messId}</div>
             </div>
           </div>
