@@ -9,27 +9,32 @@ function normalizePhone(phone) {
 }
 
 export async function GET(req) {
-  await connectDB()
-  const url = new URL(req.url)
-  const messId = url.searchParams.get('messId')
-  const mobileRaw = url.searchParams.get('mobile')
+  try {
+    await connectDB()
+    const url = new URL(req.url)
+    const messId = url.searchParams.get('messId')
+    if (!messId) return NextResponse.json({ error: 'messId required' }, { status: 400 })
 
-  if (mobileRaw) {
-    const mobile = normalizePhone(mobileRaw)
-    const customer = await Customer.findOne({ messId, mobile })
-    return NextResponse.json({ customer: customer || null })
-  }
+    const mobileRaw = url.searchParams.get('mobile')
+    if (mobileRaw) {
+      const mobile = normalizePhone(mobileRaw)
+      const customer = await Customer.findOne({ messId, mobile })
+      return NextResponse.json({ customer: customer || null })
+    }
 
-  const messDoc = await Mess.findOne({ messId })
-  if (!messDoc) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
-  const mess = {
-    messId: messDoc.messId,
-    name: messDoc.name,
-    tagline: messDoc.tagline,
-    address: messDoc.address
+    const messDoc = await Mess.findOne({ messId })
+    if (!messDoc) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
+    const mess = {
+      messId: messDoc.messId,
+      name: messDoc.name,
+      tagline: messDoc.tagline,
+      address: messDoc.address
+    }
+    const plans = await Plan.find({ messId, isActive: true })
+    return NextResponse.json({ mess, plans })
+  } catch (err) {
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
   }
-  const plans = await Plan.find({ messId, isActive: true })
-  return NextResponse.json({ mess, plans })
 }
 
 export async function POST(req) {
@@ -40,20 +45,16 @@ export async function POST(req) {
     const name = (body.name || '').trim()
     const mobile = normalizePhone(body.mobile)
     const planId = body.planId
-
     if (!messId || !name || !mobile || !planId) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
     if (mobile.length < 10) {
       return NextResponse.json({ error: 'Enter a valid mobile number' }, { status: 400 })
     }
-
     const existing = await Customer.findOne({ messId, mobile })
     if (existing) return NextResponse.json({ error: 'Mobile number already registered' }, { status: 400 })
-
     const plan = await Plan.findById(planId)
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
-
     const customer = await Customer.create({
       messId, name, mobile, planId,
       totalMeals: plan.totalMeals,
