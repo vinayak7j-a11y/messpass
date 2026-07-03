@@ -229,9 +229,9 @@ export default function Register({ params }) {
         <div style={{width:120,height:120,borderRadius:'50%',background:'#E1F5EE',border:'4px solid #0F6E56',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:60,color:'#0F6E56'}}>✓</div>
         <div style={{fontSize:40,fontWeight:700,color:'#1a1a1a'}}>Meal {scanResult?.mealNumber}</div>
         <div style={{fontSize:16,color:'#999',marginTop:6,marginBottom:24,textTransform:'capitalize'}}>recorded · {scanResult?.mealType}</div>
-        <div style={{background:'white',borderRadius:999,padding:'10px 24px',fontSize:14,color:'#999'}}>
-          <span style={{color:'#0F6E56',fontWeight:600}}>{scanResult?.remainingMeals}</span> meals remaining
-        </div>
+        <a href={'/my-meals/' + messId} style={{background:'white',borderRadius:999,padding:'10px 24px',fontSize:14,color:'#999',textDecoration:'none',display:'inline-block'}}>
+          <span style={{color:'#0F6E56',fontWeight:600}}>{scanResult?.remainingMeals}</span> meals remaining <span style={{color:'#ccc'}}>→</span>
+        </a>
         <button type="button" onClick={() => setStage('closed')} style={{marginTop:32,padding:'12px 32px',borderRadius:12,background:'white',color:'#0F6E56',fontSize:14,fontWeight:500,border:'1px solid #0F6E56',cursor:'pointer'}}>Done</button>
       </div>
     )
