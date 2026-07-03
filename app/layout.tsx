@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
-import { Analytics } from '@vercel/analytics/react'
 
 export const metadata: Metadata = {
   title: 'MessPass',
@@ -28,7 +27,6 @@ export default function RootLayout({
       </head>
       <body style={{margin:0,padding:0,background:'#f5f5f0'}}>
         {children}
-        <Analytics />
         <Analytics />
         <script dangerouslySetInnerHTML={{__html: `
           if ('serviceWorker' in navigator) {
