@@ -5,6 +5,7 @@ export default function Settings() {
   const [mess, setMess] = useState(null)
   const [form, setForm] = useState({ name:'', ownerName:'', phone:'', address:'', tagline:'' })
   const [newPassword, setNewPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -36,9 +37,12 @@ export default function Settings() {
     if (!form.name || !form.ownerName || !form.phone || !form.address) {
       setError('Name, owner name, phone, and address are required'); return
     }
+    if (!currentPassword) {
+      setError('Enter your current password to confirm changes'); return
+    }
     setSaving(true); setError(''); setSaved(false)
 
-    const payload = { messId: mess.messId, ...form }
+    const payload = { messId: mess.messId, ...form, currentPassword }
     if (newPassword) payload.newPassword = newPassword
 
     const res = await fetch('/api/mess', {
@@ -53,6 +57,7 @@ export default function Settings() {
       localStorage.setItem('mess', JSON.stringify({...JSON.parse(localStorage.getItem('mess')), ...data.mess}))
       setSaved(true)
       setNewPassword('')
+      setCurrentPassword('')
       setTimeout(() => setSaved(false), 3000)
     } else {
       setError(data.error || 'Failed to save')
@@ -119,7 +124,7 @@ export default function Settings() {
         </div>
 
         <div style={{background:'white',borderRadius:16,padding:16,marginBottom:12}}>
-          <div style={{fontSize:13,fontWeight:500,marginBottom:12}}>Change password</div>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:12}}>Change password (optional)</div>
           <label style={{fontSize:12,color:'#999',display:'block',marginBottom:4}}>New password (leave blank to keep current)</label>
           <div style={{position:'relative'}}>
             <input
@@ -134,6 +139,18 @@ export default function Settings() {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+        </div>
+
+        <div style={{background:'white',borderRadius:16,padding:16,marginBottom:12,border:'1px solid #E1F5EE'}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:8,color:'#0F6E56'}}>Confirm your identity</div>
+          <label style={{fontSize:12,color:'#999',display:'block',marginBottom:4}}>Current password (required to save any changes)</label>
+          <input
+            type="password"
+            placeholder="Enter your current password"
+            value={currentPassword}
+            onChange={e => setCurrentPassword(e.target.value)}
+            style={{width:'100%',border:'1px solid #eee',borderRadius:10,padding:'10px 14px',fontSize:15,outline:'none',boxSizing:'border-box'}}
+          />
         </div>
 
         {error && <div style={{color:'#cc0000',fontSize:13,marginBottom:12,textAlign:'center'}}>{error}</div>}

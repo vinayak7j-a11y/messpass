@@ -8,11 +8,16 @@ function normalizePhone(phone) {
 }
 
 export async function GET(req) {
-  await connectDB()
-  const messId = new URL(req.url).searchParams.get('messId')
-  const mess = await Mess.findOne({ messId }).select('-password')
-  if (!mess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
-  return NextResponse.json({ mess })
+  try {
+    await connectDB()
+    const messId = new URL(req.url).searchParams.get('messId')
+    if (!messId) return NextResponse.json({ error: 'messId required' }, { status: 400 })
+    const mess = await Mess.findOne({ messId }).select('-password')
+    if (!mess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
+    return NextResponse.json({ mess })
+  } catch (err) {
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }
 
 export async function PATCH(req) {
@@ -20,6 +25,16 @@ export async function PATCH(req) {
     await connectDB()
     const body = await req.json()
     const messId = body.messId
+    const currentPassword = body.currentPassword || ''
+
+    if (!messId) return NextResponse.json({ error: 'messId required' }, { status: 400 })
+    if (!currentPassword) return NextResponse.json({ error: 'Current password required to save changes' }, { status: 401 })
+
+    const existingMess = await Mess.findOne({ messId })
+    if (!existingMess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
+
+    const validPassword = await bcrypt.compare(currentPassword, existingMess.password)
+    if (!validPassword) return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 })
 
     const updates = {}
     if (body.name) updates.name = body.name.trim()
@@ -36,13 +51,12 @@ export async function PATCH(req) {
     if (body.tagline !== undefined) updates.tagline = body.tagline.trim()
     if (body.newPassword) {
       if (body.newPassword.length < 6) {
-        return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+        return NextResponse.json({ error: 'New password must be at least 6 characters' }, { status: 400 })
       }
       updates.password = await bcrypt.hash(body.newPassword, 10)
     }
 
     const mess = await Mess.findOneAndUpdate({ messId }, updates, { new: true }).select('-password')
-    if (!mess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
     return NextResponse.json({ mess })
   } catch (err) {
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
