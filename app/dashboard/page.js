@@ -9,9 +9,41 @@ export default function Dashboard() {
     if (!stored) { window.location.href = '/'; return }
     const mess = JSON.parse(stored)
 
+    function escapeHtml(str) {
+      const div = document.createElement('div')
+      div.textContent = str
+      return div.innerHTML
+    }
+
+    async function handleApprove(customerId) {
+      await fetch('/api/customers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, status: 'active' })
+      })
+      load()
+    }
+
+    async function handleReject(customerId, name) {
+      if (!confirm('Reject ' + name + '? This can be undone later from Rejected customers.')) return
+      await fetch('/api/customers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, status: 'rejected' })
+      })
+      load()
+    }
+
+    window.__handleApprove = handleApprove
+    window.__handleReject = handleReject
+
     async function load() {
       const res = await fetch('/api/dashboard?messId=' + mess.messId)
       const data = await res.json()
+
+      const pendingRes = await fetch('/api/customers?messId=' + mess.messId + '&status=pending')
+      const pendingData = await pendingRes.json()
+      const pendingList = pendingData.customers || []
 
       const actions = [
         {label:'Manage customers', href:'/dashboard/customers'},
@@ -59,11 +91,29 @@ export default function Dashboard() {
         </div>
       ` : ''
 
-      function escapeHtml(str) {
-        const div = document.createElement('div')
-        div.textContent = str
-        return div.innerHTML
-      }
+      const pendingHtml = pendingList.length > 0 ? `
+        <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);border:1px solid #FAC775">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-weight:600;font-size:14px;color:#854F0B">🔔 New registrations</div>
+            <div style="font-size:11px;color:#999">${pendingList.length} waiting</div>
+          </div>
+          ${pendingList.map(c => `
+            <div style="border:1px solid #f5f5f0;border-radius:12px;padding:12px;margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-weight:500;color:#0F6E56;font-size:14px;flex-shrink:0">${escapeHtml(c.name.charAt(0))}</div>
+                <div>
+                  <div style="font-weight:500;font-size:14px">${escapeHtml(c.name)}</div>
+                  <div style="font-size:12px;color:#999">${escapeHtml(c.mobile)} · ${c.totalMeals} meals</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onclick="window.__handleApprove('${c._id}')" style="flex:1;padding:8px;border-radius:8px;background:#0F6E56;color:white;font-size:13px;font-weight:500;border:none;cursor:pointer">Approve</button>
+                <button onclick="window.__handleReject('${c._id}', '${escapeHtml(c.name)}')" style="flex:1;padding:8px;border-radius:8px;background:white;color:#cc0000;font-size:13px;font-weight:500;border:1px solid #fcc;cursor:pointer">Reject</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''
 
       const mealLogHtml = (data.recentMeals && data.recentMeals.length > 0)
         ? data.recentMeals.map(m => {
@@ -100,6 +150,8 @@ export default function Dashboard() {
               </div>
             `).join('')}
           </div>
+
+          ${pendingHtml}
 
           ${onboardingHtml}
 
@@ -174,6 +226,7 @@ export default function Dashboard() {
         const d = await res.json()
         if (prevPending !== null && d.pending > prevPending) {
           playPing()
+          load()
         }
         prevPending = d.pending
       } catch (e) {}
@@ -185,6 +238,8 @@ export default function Dashboard() {
       const btn = document.getElementById('install-btn')
       if (btn) btn.style.display = 'block'
     })
+
+    return () => clearInterval(pollInterval)
   }, [])
 
   return <div ref={ref} style={{minHeight:'100vh',background:'#f5f5f0',paddingBottom:80}} />
