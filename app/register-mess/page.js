@@ -29,7 +29,13 @@ export default function RegisterMess() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error); setLoading(false); return }
-      setSuccess(data.messId)
+
+      localStorage.setItem('mess', JSON.stringify(data.mess))
+      setSuccess(data.mess.messId)
+
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1800)
     } catch {
       setError('Something went wrong')
       setLoading(false)
@@ -40,14 +46,9 @@ export default function RegisterMess() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{background:'#f5f5f0'}}>
       <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{background:'#E1F5EE', border:'3px solid #9FE1CB', fontSize:40}}>✓</div>
       <h1 className="text-2xl font-semibold mb-2" style={{color:'#0F6E56'}}>Mess registered!</h1>
-      <p className="text-sm text-gray-500 mb-6">Your mess is ready. Save this ID somewhere safe.</p>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm mb-6">
-        <div className="text-xs text-gray-500 mb-2">Your Mess ID</div>
-        <div className="text-lg font-mono font-semibold" style={{color:'#1a1a1a'}}>{success}</div>
-      </div>
-      <a href="/" className="w-full max-w-sm py-4 rounded-2xl text-white font-medium text-base block text-center" style={{background:'#0F6E56'}}>
-        Go to login
-      </a>
+      <p className="text-sm text-gray-500 mb-1">Your Mess ID</p>
+      <div className="text-lg font-mono font-semibold mb-6" style={{color:'#1a1a1a'}}>{success}</div>
+      <p className="text-sm text-gray-500">Taking you to your dashboard...</p>
     </div>
   )
 

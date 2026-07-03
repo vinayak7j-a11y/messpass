@@ -50,8 +50,15 @@ export async function POST(req) {
 
     return NextResponse.json({
       success: true,
-      messId: mess.messId,
-      message: 'Mess registered successfully'
+      mess: {
+        id: mess._id,
+        messId: mess.messId,
+        name: mess.name,
+        ownerName: mess.ownerName,
+        phone: mess.phone,
+        address: mess.address,
+        tagline: mess.tagline
+      }
     }, { status: 201 })
 
   } catch (err) {
