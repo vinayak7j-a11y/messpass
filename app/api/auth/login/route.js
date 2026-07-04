@@ -34,6 +34,10 @@ export async function POST(req) {
       return NextResponse.json({ error: 'No mess found with this number' }, { status: 404 })
     }
 
+    if (mess.blocked) {
+      return NextResponse.json({ error: 'This account has been suspended. Contact support.' }, { status: 403 })
+    }
+
     const valid = await bcrypt.compare(password, mess.password)
 
     if (!valid) {
