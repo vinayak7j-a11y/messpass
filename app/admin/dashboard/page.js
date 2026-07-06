@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 
 export default function AdminDashboard() {
   const [messes, setMesses] = useState([])
+  const [tickets, setTickets] = useState([])
+  const [tab, setTab] = useState('messes')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -10,7 +12,26 @@ export default function AdminDashboard() {
     const pw = sessionStorage.getItem('admin_password')
     if (!pw) { window.location.href = '/admin'; return }
     fetchMesses(pw)
+    fetchTickets(pw)
   }, [])
+
+  async function fetchTickets(pw) {
+    const res = await fetch('/api/support', {
+      headers: { 'x-admin-password': pw }
+    })
+    const data = await res.json()
+    if (data.tickets) setTickets(data.tickets)
+  }
+
+  async function resolveTicket(ticketId) {
+    const pw = sessionStorage.getItem('admin_password')
+    await fetch('/api/support', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': pw },
+      body: JSON.stringify({ ticketId, status: 'resolved' })
+    })
+    fetchTickets(pw)
+  }
 
   async function fetchMesses(pw) {
     const res = await fetch('/api/admin/messes', {
@@ -71,6 +92,47 @@ export default function AdminDashboard() {
 
       <div style={{padding:20}}>
 
+        <div style={{display:'flex',gap:8,marginBottom:20}}>
+          <button onClick={() => setTab('messes')}
+            style={{padding:'8px 16px',borderRadius:10,background: tab==='messes' ? '#0F6E56' : '#262626',color:'white',fontSize:13,fontWeight:500,border:'none',cursor:'pointer'}}>
+            Messes
+          </button>
+          <button onClick={() => setTab('tickets')}
+            style={{padding:'8px 16px',borderRadius:10,background: tab==='tickets' ? '#0F6E56' : '#262626',color:'white',fontSize:13,fontWeight:500,border:'none',cursor:'pointer',position:'relative'}}>
+            Support tickets
+            {tickets.filter(t => t.status === 'open').length > 0 && (
+              <span style={{position:'absolute',top:-6,right:-6,background:'#ff6b6b',color:'white',fontSize:10,fontWeight:700,borderRadius:999,width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {tickets.filter(t => t.status === 'open').length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {tab === 'tickets' && (
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            {tickets.length === 0 && <div style={{textAlign:'center',color:'#666',padding:40}}>No support tickets</div>}
+            {tickets.map(t => (
+              <div key={t._id} style={{background:'#262626',borderRadius:16,padding:16,border: t.status==='open' ? '1px solid #FAC775' : '1px solid #333'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontWeight:600,color:'white',fontSize:14}}>{t.subject}</div>
+                  <span style={{fontSize:11,fontWeight:600,color: t.status==='open' ? '#FAC775' : '#5DCAA5',background: t.status==='open' ? '#3a2f1f' : '#1f3a2f',padding:'3px 10px',borderRadius:999}}>
+                    {t.status.toUpperCase()}
+                  </span>
+                </div>
+                <div style={{fontSize:13,color:'#ccc',marginBottom:8}}>{t.message}</div>
+                <div style={{fontSize:11,color:'#777',marginBottom:12}}>{t.messName} · {t.phone} · {new Date(t.createdAt).toLocaleString()}</div>
+                {t.status === 'open' && (
+                  <button onClick={() => resolveTicket(t._id)}
+                    style={{padding:'8px 16px',borderRadius:8,background:'#0F6E56',color:'white',fontSize:12,fontWeight:500,border:'none',cursor:'pointer'}}>
+                    Mark resolved
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'messes' && <>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
           {[
             {label:'Total messes', value: totalMesses},
@@ -138,6 +200,7 @@ export default function AdminDashboard() {
             <div style={{textAlign:'center',color:'#666',padding:40}}>No messes registered yet</div>
           )}
         </div>
+        </>}
       </div>
     </div>
   )

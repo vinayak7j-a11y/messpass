@@ -52,6 +52,7 @@ export default function Dashboard() {
         {label:'QR and Poster', href:'/dashboard/qr'},
         {label:'Mess settings', href:'/dashboard/settings'},
         {label:'Audit log', href:'/dashboard/audit'},
+        {label:'Help & Support', href:'/dashboard/support'},
       ]
 
       const nav = [
