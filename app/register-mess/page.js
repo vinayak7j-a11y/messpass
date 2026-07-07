@@ -34,7 +34,7 @@ export default function RegisterMess() {
       setSuccess(data.mess.messId)
 
       setTimeout(() => {
-        window.location.href = '/dashboard'
+        window.location.href = '/subscribe'
       }, 1800)
     } catch {
       setError('Something went wrong')

@@ -45,7 +45,10 @@ export async function POST(req) {
     const mess = await Mess.create({
       name, ownerName, phone, address, tagline,
       messId,
-      password: hashedPassword
+      password: hashedPassword,
+      subscriptionStatus: 'pending_payment',
+      subscriptionPlan: null,
+      subscriptionExpiresAt: null
     })
 
     return NextResponse.json({
@@ -57,7 +60,8 @@ export async function POST(req) {
         ownerName: mess.ownerName,
         phone: mess.phone,
         address: mess.address,
-        tagline: mess.tagline
+        tagline: mess.tagline,
+        subscriptionStatus: mess.subscriptionStatus
       }
     }, { status: 201 })
 

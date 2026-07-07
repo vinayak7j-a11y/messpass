@@ -9,6 +9,21 @@ export default function Dashboard() {
     if (!stored) { window.location.href = '/'; return }
     const mess = JSON.parse(stored)
 
+    async function checkSubscription() {
+      const res = await fetch('/api/subscription/status?messId=' + mess.messId)
+      const data = await res.json()
+      if (data.subscriptionStatus === 'pending_payment') {
+        window.location.href = '/subscribe'
+        return false
+      }
+      if (data.subscriptionStatus === 'expired') {
+        window.location.href = '/subscribe?renew=1'
+        return false
+      }
+      return true
+    }
+
+
     function escapeHtml(str) {
       const div = document.createElement('div')
       div.textContent = str
@@ -53,6 +68,7 @@ export default function Dashboard() {
         {label:'Mess settings', href:'/dashboard/settings'},
         {label:'Audit log', href:'/dashboard/audit'},
         {label:'Help & Support', href:'/dashboard/support'},
+        {label:'Renew subscription', href:'/subscribe?renew=1'},
       ]
 
       const nav = [

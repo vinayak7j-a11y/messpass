@@ -106,7 +106,42 @@ export default function AdminDashboard() {
               </span>
             )}
           </button>
+          <button onClick={() => setTab('payments')}
+            style={{padding:'8px 16px',borderRadius:10,background: tab==='payments' ? '#0F6E56' : '#262626',color:'white',fontSize:13,fontWeight:500,border:'none',cursor:'pointer',position:'relative'}}>
+            Payments
+            {payments.length > 0 && (
+              <span style={{position:'absolute',top:-6,right:-6,background:'#FAC775',color:'#1a1a1a',fontSize:10,fontWeight:700,borderRadius:999,width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {payments.length}
+              </span>
+            )}
+          </button>
         </div>
+
+        {tab === 'payments' && (
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            {payments.length === 0 && <div style={{textAlign:'center',color:'#666',padding:40}}>No pending payments</div>}
+            {payments.map(p => (
+              <div key={p._id} style={{background:'#262626',borderRadius:16,padding:16,border:'1px solid #FAC775'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontWeight:600,color:'white',fontSize:15}}>{p.messId}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:'#FAC775'}}>₹{p.amount}</div>
+                </div>
+                <div style={{fontSize:13,color:'#ccc',marginBottom:4,textTransform:'capitalize'}}>{p.plan} plan</div>
+                <div style={{fontSize:11,color:'#777',marginBottom:14}}>Submitted {new Date(p.createdAt).toLocaleString()}</div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={() => handlePayment(p._id, 'approve')}
+                    style={{flex:1,padding:10,borderRadius:10,background:'#0F6E56',color:'white',fontSize:13,fontWeight:500,border:'none',cursor:'pointer'}}>
+                    ✓ Confirm payment received
+                  </button>
+                  <button onClick={() => handlePayment(p._id, 'reject')}
+                    style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:'#ff6b6b',fontSize:13,fontWeight:500,border:'1px solid #663333',cursor:'pointer'}}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {tab === 'tickets' && (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>

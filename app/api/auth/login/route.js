@@ -64,7 +64,10 @@ export async function POST(req) {
         ownerName: mess.ownerName,
         phone: mess.phone,
         address: mess.address,
-        tagline: mess.tagline
+        tagline: mess.tagline,
+        subscriptionStatus: mess.subscriptionStatus || 'active',
+        subscriptionPlan: mess.subscriptionPlan || null,
+        subscriptionExpiresAt: mess.subscriptionExpiresAt || null
       }
     })
 
