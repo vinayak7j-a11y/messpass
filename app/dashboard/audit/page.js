@@ -1,23 +1,31 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 
 export default function Audit() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('mess')
-    if (!stored) { window.location.href = '/'; return }
-    const m = JSON.parse(stored)
-    fetchLogs(m.messId)
-  }, [])
-
   async function fetchLogs(messId) {
     const res = await fetch('/api/adjust?messId=' + messId)
     const data = await res.json()
+
     if (data.logs) setLogs(data.logs)
+
     setLoading(false)
   }
+
+  useEffect(() => {
+    const stored = localStorage.getItem('mess')
+
+    if (!stored) {
+      window.location.href = '/'
+      return
+    }
+
+    const m = JSON.parse(stored)
+    fetchLogs(m.messId)
+  }, [])
 
   return (
     <div style={{minHeight:'100vh',background:'#f5f5f0',paddingBottom:80}}>

@@ -5,19 +5,29 @@ export default function Approvals() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [flash, setFlash] = useState(false)
+
   const messIdRef = useRef(null)
   const prevCountRef = useRef(0)
   const audioCtxRef = useRef(null)
-fetchPending(m.messId, true)
 
-    const interval = setInterval(() => fetchPending(m.messId, false), 5000)
-    return () => clearInterval(interval)
   useEffect(() => {
     const stored = localStorage.getItem('mess')
-    if (!stored) { window.location.href = '/'; return }
+
+    if (!stored) {
+      window.location.href = '/'
+      return
+    }
+
     const m = JSON.parse(stored)
     messIdRef.current = m.messId
-    
+
+    fetchPending(m.messId, true)
+
+    const interval = setInterval(() => {
+      fetchPending(m.messId, false)
+    }, 5000)
+
+    return () => clearInterval(interval)
   }, [])
 
   function playPing() {
