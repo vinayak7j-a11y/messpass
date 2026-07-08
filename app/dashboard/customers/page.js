@@ -143,7 +143,15 @@ export default function Customers() {
             </div>
             <div style={{background:'white',borderRadius:14,padding:14}}>
               <div style={{fontSize:11,color:'#999',marginBottom:4}}>Remaining</div>
-              <div style={{fontSize:22,fontWeight:600,color:'#0F6E56'}}>{selected.remainingMeals}</div>
+             <div
+  style={{
+    fontSize:22,
+    fontWeight:600,
+    color:getMealColor(selected.remainingMeals)
+  }}
+>
+  {selected.remainingMeals}
+</div>
             </div>
             <div style={{background:'white',borderRadius:14,padding:14}}>
               <div style={{fontSize:11,color:'#999',marginBottom:4}}>Progress</div>
@@ -228,7 +236,7 @@ export default function Customers() {
   ))}
 </div>
 
-{adjustReason === 'Other' && (
+{adjustReason === 'Other...' && (
   <input
     type="text"
     placeholder="Enter reason..."
