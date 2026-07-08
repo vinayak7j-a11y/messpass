@@ -10,17 +10,22 @@ export default function Dashboard() {
     const mess = JSON.parse(stored)
 
     async function checkSubscription() {
-      const res = await fetch('/api/subscription/status?messId=' + mess.messId)
-      const data = await res.json()
-      if (data.subscriptionStatus === 'pending_payment') {
-        window.location.href = '/subscribe'
-        return false
+      try {
+        const res = await fetch('/api/subscription/status?messId=' + mess.messId)
+        const data = await res.json()
+        if (data.subscriptionStatus === 'pending_payment') {
+          window.location.href = '/subscribe'
+          return false
+        }
+        if (data.subscriptionStatus === 'expired') {
+          window.location.href = '/subscribe?renew=1'
+          return false
+        }
+        return true
+      } catch (e) {
+        // Network hiccup — don't lock out an owner over a connectivity issue, just let the dashboard load
+        return true
       }
-      if (data.subscriptionStatus === 'expired') {
-        window.location.href = '/subscribe?renew=1'
-        return false
-      }
-      return true
     }
 
 

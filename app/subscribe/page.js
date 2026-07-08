@@ -12,18 +12,39 @@ const PLANS = [
 export default function Subscribe() {
   const [mess, setMess] = useState(null)
   const [selected, setSelected] = useState('monthly')
-  const [stage, setStage] = useState('select')
+  const [stage, setStage] = useState('checking')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('mess')
     if (!stored) { window.location.href = '/'; return }
-    setMess(JSON.parse(stored))
+    const m = JSON.parse(stored)
+    setMess(m)
+    checkExistingStatus(m.messId)
   }, [])
+
+  async function checkExistingStatus(messId) {
+    const res = await fetch('/api/subscription/status?messId=' + messId)
+    const data = await res.json()
+
+    if (data.subscriptionStatus === 'active') {
+      window.location.href = '/dashboard'
+      return
+    }
+
+    const payRes = await fetch('/api/subscription/pending?messId=' + messId)
+    const payData = await payRes.json()
+
+    if (payData.payment) {
+      setSelected(payData.payment.plan)
+      setStage('pay')
+    } else {
+      setStage('select')
+    }
+  }
 
   async function handleProceed() {
     setLoading(true)
-    const plan = PLANS.find(p => p.key === selected)
     const res = await fetch('/api/subscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +56,17 @@ export default function Subscribe() {
     setLoading(false)
   }
 
-  if (!mess) return null
+  async function checkStatusNow() {
+    setLoading(true)
+    await checkExistingStatus(mess.messId)
+    setLoading(false)
+  }
+
+  if (!mess || stage === 'checking') return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f5f5f0'}}>
+      <div style={{color:'#999'}}>Loading...</div>
+    </div>
+  )
 
   const plan = PLANS.find(p => p.key === selected)
   const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${plan.price}&cu=INR&tn=${encodeURIComponent('MessPass ' + plan.label + ' - ' + mess.messId)}`
@@ -63,13 +94,13 @@ export default function Subscribe() {
         <div style={{fontSize:13,fontWeight:500}}>{mess.messId}</div>
       </div>
 
-      <div style={{fontSize:12,color:'#999',lineHeight:1.6}}>
+      <div style={{fontSize:12,color:'#999',lineHeight:1.6,marginBottom:20}}>
         After paying, we'll verify and approve your account.<br/>This usually takes a few minutes.
       </div>
 
-      <button onClick={() => window.location.href = '/dashboard'}
-        style={{marginTop:24,padding:'10px 24px',borderRadius:12,background:'white',color:'#0F6E56',fontSize:13,fontWeight:500,border:'1px solid #0F6E56',cursor:'pointer'}}>
-        I've paid — check my status
+      <button onClick={checkStatusNow} disabled={loading}
+        style={{padding:'12px 24px',borderRadius:12,background:loading?'#9FE1CB':'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer'}}>
+        {loading ? 'Checking...' : "I've paid — check my status"}
       </button>
     </div>
   )

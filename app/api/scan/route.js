@@ -25,7 +25,7 @@ export async function POST(req) {
     }
 
     const hour = new Date().getHours()
-    const mealType = hour < 16 ? 'lunch' : 'dinner'
+    const mealType = hour < 17 ? 'lunch' : 'dinner'
     const today = new Date().toDateString()
 
     const lastMeal = await MealRecord.findOne({ customerId: customer._id }).sort({ timestamp: -1 })
