@@ -25,16 +25,30 @@ export async function POST(req) {
     }
 
     const hour = new Date().getHours()
-    const mealType = hour < 17 ? 'lunch' : 'dinner'
-    const today = new Date().toDateString()
+const mealType = hour < 17 ? 'lunch' : 'dinner'
 
-    const lastMeal = await MealRecord.findOne({ customerId: customer._id }).sort({ timestamp: -1 })
-    if (lastMeal) {
-      const lastDate = new Date(lastMeal.timestamp).toDateString()
-      if (lastDate === today && lastMeal.mealType === mealType) {
-        return NextResponse.json({ error: 'duplicate', customer, lastMeal })
-      }
-    }
+const startOfDay = new Date()
+startOfDay.setHours(0, 0, 0, 0)
+
+const endOfDay = new Date()
+endOfDay.setHours(23, 59, 59, 999)
+
+const existingMeal = await MealRecord.findOne({
+  customerId: customer._id,
+  mealType,
+  timestamp: {
+    $gte: startOfDay,
+    $lte: endOfDay
+  }
+})
+
+if (existingMeal) {
+  return NextResponse.json({
+    error: 'duplicate',
+    customer,
+    lastMeal: existingMeal
+  })
+}
 
     customer.usedMeals += 1
     customer.remainingMeals -= 1
