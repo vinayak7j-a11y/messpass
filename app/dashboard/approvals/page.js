@@ -8,16 +8,16 @@ export default function Approvals() {
   const messIdRef = useRef(null)
   const prevCountRef = useRef(0)
   const audioCtxRef = useRef(null)
+fetchPending(m.messId, true)
 
+    const interval = setInterval(() => fetchPending(m.messId, false), 5000)
+    return () => clearInterval(interval)
   useEffect(() => {
     const stored = localStorage.getItem('mess')
     if (!stored) { window.location.href = '/'; return }
     const m = JSON.parse(stored)
     messIdRef.current = m.messId
-    fetchPending(m.messId, true)
-
-    const interval = setInterval(() => fetchPending(m.messId, false), 5000)
-    return () => clearInterval(interval)
+    
   }, [])
 
   function playPing() {
@@ -35,7 +35,7 @@ export default function Approvals() {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
       osc.start()
       osc.stop(ctx.currentTime + 0.4)
-    } catch (e) {}
+    } catch {}
     if (navigator.vibrate) navigator.vibrate([100, 50, 100])
   }
 

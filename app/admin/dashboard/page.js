@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 
 export default function AdminDashboard() {
   const [messes, setMesses] = useState([])
-  const [tickets, setTickets] = useState([])
+  const [tickets, setTickets] = useState([]) 
+  const [payments, setPayments] = useState([])
   const [tab, setTab] = useState('messes')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -12,7 +13,8 @@ export default function AdminDashboard() {
     const pw = sessionStorage.getItem('admin_password')
     if (!pw) { window.location.href = '/admin'; return }
     fetchMesses(pw)
-    fetchTickets(pw)
+fetchTickets(pw)
+fetchPayments(pw)
   }, [])
 
   async function fetchTickets(pw) {
@@ -22,7 +24,17 @@ export default function AdminDashboard() {
     const data = await res.json()
     if (data.tickets) setTickets(data.tickets)
   }
+async function fetchPayments(pw) {
+  const res = await fetch('/api/subscription', {
+    headers: { 'x-admin-password': pw }
+  })
 
+  const data = await res.json()
+
+  if (data.payments) {
+    setPayments(data.payments)
+  }
+}
   async function resolveTicket(ticketId) {
     const pw = sessionStorage.getItem('admin_password')
     await fetch('/api/support', {
@@ -32,7 +44,24 @@ export default function AdminDashboard() {
     })
     fetchTickets(pw)
   }
+async function handlePayment(paymentId, action) {
+  const pw = sessionStorage.getItem('admin_password')
 
+  await fetch('/api/subscription', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': pw
+    },
+    body: JSON.stringify({
+      paymentId,
+      action
+    })
+  })
+
+  fetchPayments(pw)
+  fetchMesses(pw)
+}
   async function fetchMesses(pw) {
     const res = await fetch('/api/admin/messes', {
       headers: { 'x-admin-password': pw }
