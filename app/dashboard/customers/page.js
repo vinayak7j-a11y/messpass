@@ -75,7 +75,11 @@ export default function Customers() {
     if (data.customers) setCustomers(data.customers.filter(c => c.status !== 'pending' && c.status !== 'rejected'))
     setLoading(false)
   }
-
+  function getMealColor(remainingMeals) {
+  if (remainingMeals > 15) return '#22c55e'   // Green
+  if (remainingMeals > 7) return '#eab308'    // Yellow
+  return '#ef4444'                            // Red
+}
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) || c.mobile.includes(search)
   )
@@ -99,11 +103,32 @@ export default function Customers() {
               <div style={{fontSize:13,color:'#999'}}>{selected.mobile}</div>
             </div>
             <div style={{marginLeft:'auto'}}>
-              <span style={{fontSize:12,fontWeight:500,padding:'4px 10px',borderRadius:999,
-                background: selected.remainingMeals <= 5 ? '#FCEBEB' : '#E1F5EE',
-                color: selected.remainingMeals <= 5 ? '#A32D2D' : '#0F6E56'}}>
-                {selected.remainingMeals <= 5 ? 'Low balance' : 'Active'}
-              </span>
+              <span
+  style={{
+    fontSize:12,
+    fontWeight:500,
+    padding:'4px 10px',
+    borderRadius:999,
+    background:
+      selected.remainingMeals > 15
+        ? '#E1F5EE'
+        : selected.remainingMeals > 7
+          ? '#FFF7D6'
+          : '#FCEBEB',
+    color:
+      selected.remainingMeals > 15
+        ? '#0F6E56'
+        : selected.remainingMeals > 7
+          ? '#A16207'
+          : '#A32D2D'
+  }}
+>
+  {selected.remainingMeals > 15
+    ? 'Healthy'
+    : selected.remainingMeals > 7
+      ? 'Running Low'
+      : 'Renew Soon'}
+</span>
             </div>
           </div>
 
@@ -322,10 +347,25 @@ export default function Customers() {
               <div style={{fontWeight:500,fontSize:14}}>{c.name}</div>
               <div style={{fontSize:12,color:'#999'}}>{c.mobile}</div>
             </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontSize:13,fontWeight:600,color: c.remainingMeals <= 5 ? '#A32D2D' : '#0F6E56'}}>{c.remainingMeals}</div>
-              <div style={{fontSize:11,color:'#999'}}>left</div>
-            </div>
+           <div style={{display:'flex',alignItems:'center',gap:8}}>
+  <div
+    style={{
+      width:10,
+      height:10,
+      borderRadius:'50%',
+      background:getMealColor(c.remainingMeals)
+    }}
+  />
+  <div
+    style={{
+      fontSize:13,
+      fontWeight:600,
+      color:getMealColor(c.remainingMeals)
+    }}
+  >
+    {c.remainingMeals} meals left
+  </div>
+</div>
             <span style={{color:'#ccc',fontSize:16}}>→</span>
           </div>
         ))}
