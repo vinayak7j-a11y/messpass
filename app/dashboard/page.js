@@ -10,24 +10,31 @@ export default function Dashboard() {
     const mess = JSON.parse(stored)
 
     async function checkSubscription() {
-      try {
-        const res = await fetch('/api/subscription/status?messId=' + mess.messId)
-        const data = await res.json()
-        if (data.subscriptionStatus === 'pending_payment') {
-          window.location.href = '/subscribe'
-          return false
-        }
-        if (data.subscriptionStatus === 'expired') {
-          window.location.href = '/subscribe?renew=1'
-          return false
-        }
-        return true
-      } catch (e) {
-        // Network hiccup — don't lock out an owner over a connectivity issue, just let the dashboard load
-        return true
-      }
+  try {
+    const res = await fetch('/api/subscription/status?messId=' + mess.messId)
+    const data = await res.json()
+
+    window.subscriptionInfo = data
+
+    if (data.subscriptionStatus === 'pending_payment') {
+      window.location.href = '/subscribe'
+      return false
     }
 
+    // Only block after the grace period ends
+    if (
+      data.subscriptionStatus === 'expired' &&
+      !data.inGracePeriod
+    ) {
+      window.location.href = '/subscribe?renew=1'
+      return false
+    }
+
+    return true
+  } catch (e) {
+    return true
+  }
+}
 
     function escapeHtml(str) {
       const div = document.createElement('div')
@@ -60,7 +67,8 @@ export default function Dashboard() {
     async function load() {
       const res = await fetch('/api/dashboard?messId=' + mess.messId)
       const data = await res.json()
-
+      const subRes = await fetch('/api/subscription/status?messId=' + mess.messId)
+      const subData = await subRes.json()
       const pendingRes = await fetch('/api/customers?messId=' + mess.messId + '&status=pending')
       const pendingData = await pendingRes.json()
       const pendingList = pendingData.customers || []
@@ -72,8 +80,7 @@ export default function Dashboard() {
         {label:'QR and Poster', href:'/dashboard/qr'},
         {label:'Mess settings', href:'/dashboard/settings'},
         {label:'Audit log', href:'/dashboard/audit'},
-        {label:'Help & Support', href:'/dashboard/support'},
-        {label:'Renew subscription', href:'/subscribe?renew=1'},
+        {label:'Help & Support', href:'/dashboard/support'}, 
       ]
 
       const nav = [
@@ -93,8 +100,122 @@ export default function Dashboard() {
       const plansRes = await fetch('/api/plans?messId=' + mess.messId)
       const plansData = await plansRes.json()
       const hasPlans = (plansData.plans && plansData.plans.length > 0)
-      const hasCustomers = (data.total ?? 0) > 0
+      const hasCustomers = (data.total ?? 0) > 0 
+      const expiryDate = subData.subscriptionExpiresAt
+  ? new Date(subData.subscriptionExpiresAt).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  : ''
 
+const planName =
+  subData.subscriptionPlan === 'quarterly'
+    ? '3 Months Plan'
+    : 'Monthly Plan'
+let subscriptionHtml = ''
+if (subData.subscriptionStatus === 'active') {
+
+  const bannerColor =
+    subData.daysRemaining <= 7
+      ? '#FFF8E8'
+      : '#E1F5EE'
+
+  const borderColor =
+    subData.daysRemaining <= 7
+      ? '#FAC775'
+      : '#9FE1CB'
+
+  const titleColor =
+    subData.daysRemaining <= 7
+      ? '#854F0B'
+      : '#0F6E56'
+
+  const icon =
+    subData.daysRemaining <= 7
+      ? '🟡'
+      : '🟢'
+
+  const heading =
+    subData.daysRemaining <= 7
+      ? `Ends in ${subData.daysRemaining} day${subData.daysRemaining === 1 ? '' : 's'}`
+      : `${subData.daysRemaining} day${subData.daysRemaining === 1 ? '' : 's'} remaining` 
+
+    subscriptionHtml = `
+      <div style="background:${bannerColor};border:1px solid ${borderColor};border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+        <div style="font-size:13px;font-weight:600;color:${titleColor};margin-bottom:6px">
+  ${icon} MessPass Subscription
+</div>
+
+<div style="font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:4px">
+  ${heading}
+</div>
+<div style="font-size:13px;color:#666;margin-bottom:4px">
+  ${planName}
+</div>
+
+<div style="font-size:13px;color:#666;margin-bottom:14px">
+  Expires on ${expiryDate}
+</div>
+        <div style="font-size:13px;color:#666;margin-bottom:14px">
+  ${
+    subData.daysRemaining <= 7
+      ? 'Renew now to avoid interruption.'
+      : 'Your subscription is active and your mess is fully protected.'
+  }
+</div>
+        ${
+  subData.daysRemaining <= 7
+    ? `
+      <a href="/subscribe?renew=1"
+        style="display:inline-block;padding:10px 16px;background:#0F6E56;color:white;border-radius:10px;text-decoration:none;font-size:14px;font-weight:500">
+        Renew Subscription
+      </a>
+    `
+    : ''
+}
+      </div>
+    `
+  }
+
+else if (subData.inGracePeriod) {
+  const graceDays = Math.max(
+    1,
+    Math.ceil(
+      (new Date(subData.graceEndsAt).getTime() - Date.now()) /
+      (1000 * 60 * 60 * 24)
+    )
+  )
+
+  subscriptionHtml = `
+    <div style="background:#FFEAEA;border:1px solid #F3A5A5;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+      <div style="font-size:13px;font-weight:600;color:#B00020;margin-bottom:6px">
+        🔴 MessPass Subscription Expired
+      </div>
+
+      <div style="font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:4px">
+  ${graceDays} day${graceDays === 1 ? '' : 's'} of grace remaining
+</div>
+
+<div style="font-size:13px;color:#666;margin-bottom:4px">
+  ${planName}
+</div>
+
+<div style="font-size:13px;color:#666;margin-bottom:14px">
+  Expired on ${expiryDate}
+</div>
+
+<div style="font-size:13px;color:#666;margin-bottom:14px">
+  Renew now to continue using MessPass without interruption.
+</div>
+
+      <a href="/subscribe?renew=1"
+        style="display:inline-block;padding:10px 16px;background:#0F6E56;color:white;border-radius:10px;text-decoration:none;font-size:14px;font-weight:500">
+        Renew Subscription
+      </a>
+    </div>
+  `
+}
       const onboardingHtml = (!hasPlans || !hasCustomers) ? `
         <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);border:1px solid #E1F5EE">
           <div style="font-weight:600;font-size:14px;margin-bottom:12px;color:#0F6E56">Getting started</div>
@@ -163,7 +284,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div style="padding:20px 16px;display:flex;flex-direction:column;gap:16px">
+        <div style="padding:20px 16px;display:flex;flex-direction:column;gap:16px"> 
+        ${subscriptionHtml}
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             ${stats.map(s => `
               <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
@@ -220,9 +342,14 @@ export default function Dashboard() {
         }
       }
     }
-
+;(async () => {
+  const allowed = await checkSubscription()
+  if (allowed) {
     load()
+  }
+})()
 
+    
     let prevPending = null
     let audioCtx = null
 
@@ -243,16 +370,25 @@ export default function Dashboard() {
     }
 
     const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/dashboard?messId=' + mess.messId)
-        const d = await res.json()
-        if (prevPending !== null && d.pending > prevPending) {
-          playPing()
-          load()
-        }
-        prevPending = d.pending
-      } catch (e) {}
-    }, 8000)
+  try {
+    const res = await fetch('/api/dashboard?messId=' + mess.messId)
+    const d = await res.json()
+
+    if (prevPending !== null && d.pending > prevPending) {
+      playPing()
+    }
+
+    prevPending = d.pending
+
+    const allowed = await checkSubscription()
+
+    if (allowed) {
+      load()
+    }
+  } catch (e) {}
+}, 8000) 
+        
+      
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()

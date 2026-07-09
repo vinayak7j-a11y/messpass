@@ -29,20 +29,38 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
     }
 
-    const existingPending = await SubscriptionPayment.findOne({ messId, status: 'pending' })
-    if (existingPending) {
-      return NextResponse.json({ success: true, payment: existingPending, amount: existingPending.amount })
-    }
+   const paymentType = existingMess
+  ? 'renewal'
+  : 'registration'
 
-    const amount = PLAN_PRICES[plan]
-    const payment = await SubscriptionPayment.create({ messId, plan, amount })
+const existingPending = await SubscriptionPayment.findOne({
+  messId,
+  status: 'pending',
+  type: paymentType
+})
 
+if (existingPending) {
+  return NextResponse.json({
+    success: true,
+    payment: existingPending,
+    amount: existingPending.amount
+  })
+}
+
+const amount = PLAN_PRICES[plan] 
+
+const payment = await SubscriptionPayment.create({
+  messId,
+  type: paymentType,
+  plan,
+  amount
+})
+    
     return NextResponse.json({ success: true, payment, amount })
   } catch (err) {
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }
-
 export async function GET(req) {
   try {
     await connectDB()
@@ -50,34 +68,137 @@ export async function GET(req) {
     const url = new URL(req.url)
     const messId = url.searchParams.get('messId')
 
-    // Shop: Check its own pending payment
+    // ==========================
+    // SHOP REQUEST
+    // ==========================
     if (messId) {
-      const payment = await SubscriptionPayment.findOne({
-        messId,
-        status: 'pending'
-      }).sort({ createdAt: -1 })
+      const mess = await Mess.findOne({ messId })
 
-      return NextResponse.json({ payment: payment || null })
+      if (!mess) {
+        return NextResponse.json(
+          { error: 'Mess not found' },
+          { status: 404 }
+        )
+      }
+
+      const now = new Date()
+
+      let status = mess.subscriptionStatus || 'active'
+      let daysRemaining = null
+      let inGracePeriod = false
+      let graceEndsAt = null
+
+      if (mess.subscriptionExpiresAt) {
+        const expiry = new Date(mess.subscriptionExpiresAt)
+
+        const diffMs = expiry.getTime() - now.getTime()
+        daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+        const graceEnd = new Date(
+          expiry.getTime() + 48 * 60 * 60 * 1000
+        )
+
+        if (now > expiry) {
+          status = 'expired'
+
+          if (mess.subscriptionStatus !== 'expired') {
+            await Mess.findOneAndUpdate(
+              { messId },
+              { subscriptionStatus: 'expired' }
+            )
+          }
+
+          if (now <= graceEnd) {
+            inGracePeriod = true
+            graceEndsAt = graceEnd
+          }
+        }
+      }
+
+      return NextResponse.json({
+        subscriptionStatus: status,
+        subscriptionPlan: mess.subscriptionPlan,
+        subscriptionExpiresAt: mess.subscriptionExpiresAt,
+        daysRemaining,
+        inGracePeriod,
+        graceEndsAt
+      })
     }
 
-    // Admin: Get all pending payments
+    // ==========================
+    // ADMIN REQUEST
+    // ==========================
     if (!checkAdmin(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+const payments = await SubscriptionPayment
+  .find({ status: 'pending' })
+  .sort({ createdAt: -1 })
+
+const paymentsWithNames = await Promise.all(
+  payments.map(async payment => {
+
+    let messName = null
+
+    const paymentData = {
+      ...payment.toObject()
     }
 
-    const payments = await SubscriptionPayment
-      .find({ status: 'pending' })
-      .sort({ createdAt: -1 })
+    if (payment.type === 'registration') {
 
-    return NextResponse.json({ payments })
+      const pending = await PendingRegistration.findOne({
+        messId: payment.messId
+      })
+
+      messName = pending?.name || null
+
+    } else {
+
+      const mess = await Mess.findOne({
+        messId: payment.messId
+      })
+
+      messName = mess?.name || null
+
+      if (mess) {
+        paymentData.currentPlan = mess.subscriptionPlan
+        paymentData.currentExpiry = mess.subscriptionExpiresAt
+
+        if (mess.subscriptionExpiresAt) {
+          const diff =
+            mess.subscriptionExpiresAt.getTime() - Date.now()
+
+          paymentData.daysRemaining = Math.ceil(
+            diff / (1000 * 60 * 60 * 24)
+          )
+        }
+      }
+    }
+
+    paymentData.messName = messName
+
+    return paymentData
+  })
+)
+
+return NextResponse.json({
+  payments: paymentsWithNames
+})
+    
+
   } catch (err) {
     console.error(err)
+
     return NextResponse.json(
       { error: 'Something went wrong' },
       { status: 500 }
     )
   }
 }
+
 
 export async function PATCH(req) {
   try {
@@ -97,7 +218,11 @@ export async function PATCH(req) {
       payment.status = 'rejected'
       await payment.save()
       // Reject just deletes the unpaid pending registration if it was never a real account
-      await PendingRegistration.deleteOne({ messId: payment.messId })
+      if (payment.type === 'registration') {
+  await PendingRegistration.deleteOne({
+    messId: payment.messId
+  })
+}
       return NextResponse.json({ success: true, payment })
     }
 
@@ -111,7 +236,7 @@ export async function PATCH(req) {
 
     let mess = await Mess.findOne({ messId: payment.messId })
 
-    if (!mess) {
+    if (payment.type === 'registration') {
       // First-time approval — this is when the real Mess account actually gets created
       const pending = await PendingRegistration.findOne({ messId: payment.messId })
       if (!pending) {
@@ -138,8 +263,10 @@ export async function PATCH(req) {
       return NextResponse.json({ success: true, payment, newExpiry, messCreated: true })
     }
 
-    // Renewal for an existing active/expired mess
-    const baseDate = (mess.subscriptionExpiresAt && mess.subscriptionExpiresAt > now) ? mess.subscriptionExpiresAt : now
+    // Renewal for an existing active/expired mess 
+    const baseDate =
+  (mess?.subscriptionExpiresAt &&
+   mess.subscriptionExpiresAt > now) ? mess.subscriptionExpiresAt : now
     const newExpiry = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000)
 
     await Mess.findOneAndUpdate(

@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState([])
   const [tab, setTab] = useState('messes')
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState('') 
 
   useEffect(() => {
     const pw = sessionStorage.getItem('admin_password')
@@ -16,51 +16,95 @@ export default function AdminDashboard() {
 fetchTickets(pw)
 fetchPayments(pw)
   }, [])
-
-  async function fetchTickets(pw) {
-    const res = await fetch('/api/support', {
-      headers: { 'x-admin-password': pw }
-    })
-    const data = await res.json()
-    if (data.tickets) setTickets(data.tickets)
-  }
-async function fetchPayments(pw) {
-  const res = await fetch('/api/subscription', {
+async function fetchTickets(pw) {
+  const res = await fetch('/api/support', {
     headers: { 'x-admin-password': pw }
   })
 
+  if (res.status === 401) {
+    window.location.href = '/admin'
+    return
+  }
+
   const data = await res.json()
 
-  if (data.payments) {
-    setPayments(data.payments)
+  if (data.tickets) {
+    setTickets(data.tickets)
   }
 }
+  
+async function fetchPayments(pw) {
+  
+  const res = await fetch('/api/subscription', {
+  headers: { 'x-admin-password': pw }
+})
+
+if (res.status === 401) {
+  window.location.href = '/admin'
+  return
+}
+
+const data = await res.json()
+
+if (data.payments) {
+  setPayments(data.payments)
+}
+}
+  
   async function resolveTicket(ticketId) {
-    const pw = sessionStorage.getItem('admin_password')
-    await fetch('/api/support', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': pw },
-      body: JSON.stringify({ ticketId, status: 'resolved' })
-    })
-    fetchTickets(pw)
-  }
-async function handlePayment(paymentId, action) {
   const pw = sessionStorage.getItem('admin_password')
 
-  await fetch('/api/subscription', {
+  const res = await fetch('/api/support', {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       'x-admin-password': pw
     },
     body: JSON.stringify({
-      paymentId,
-      action
+      ticketId,
+      status: 'resolved'
     })
   })
 
+  if (res.status === 401) {
+    window.location.href = '/admin'
+    return
+  }
+
+  if (!res.ok) {
+    alert('Failed to resolve ticket')
+    return
+  }
+
+  fetchTickets(pw)
+}
+async function handlePayment(paymentId, action) {
+  const pw = sessionStorage.getItem('admin_password')
+
+  const res = await fetch('/api/subscription', { 
+    
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': pw
+    }, 
+    
+    body: JSON.stringify({
+      paymentId,
+      action 
+    })
+  }) 
+  if (res.status === 401) {
+  window.location.href = '/admin'
+  return
+}
+if (!res.ok) {
+    alert("Failed to update payment.")
+    return
+}
   fetchPayments(pw)
-  fetchMesses(pw)
+  fetchMesses(pw) 
+  fetchTickets(pw) 
 }
   async function fetchMesses(pw) {
     const res = await fetch('/api/admin/messes', {
@@ -96,7 +140,7 @@ async function handlePayment(paymentId, action) {
 
   function logout() {
     sessionStorage.removeItem('admin_password')
-    window.location.href = '/admin'
+   window.location.replace('/admin')
   }
 
   if (loading) return (
@@ -108,8 +152,13 @@ async function handlePayment(paymentId, action) {
   const totalMesses = messes.length
   const totalCustomersAll = messes.reduce((sum, m) => sum + m.totalCustomers, 0)
   const totalMealsAll = messes.reduce((sum, m) => sum + m.totalMeals, 0)
-  const activeMesses = messes.filter(m => !m.blocked).length
-
+  const activeMesses = messes.filter(m => !m.blocked).length 
+  const registrationPayments = payments.filter(
+  p => p.type !== 'renewal' 
+) 
+const renewalPayments = payments.filter(
+  p => p.type === 'renewal'
+)
   return (
     <div style={{minHeight:'100vh',background:'#1a1a1a',paddingBottom:40}}>
       <div style={{padding:20,display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #333'}}>
@@ -149,13 +198,81 @@ async function handlePayment(paymentId, action) {
         {tab === 'payments' && (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
             {payments.length === 0 && <div style={{textAlign:'center',color:'#666',padding:40}}>No pending payments</div>}
-            {payments.map(p => (
+            
+              <div style={{ marginBottom: 28 }}>
+  <div
+    style={{
+      color: 'white',
+      fontSize: 16,
+      fontWeight: 600,
+      marginBottom: 14
+    }}
+  >
+    New Registrations ({registrationPayments.length})
+  </div>
+
+  {registrationPayments.length === 0 && (
+    <div style={{ color: '#888', marginBottom: 20 }}>
+      No pending registrations
+    </div>
+  )}
+
+  {registrationPayments.map(p => (
               <div key={p._id} style={{background:'#262626',borderRadius:16,padding:16,border:'1px solid #FAC775'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{fontWeight:600,color:'white',fontSize:15}}>{p.messId}</div>
+                  <div>
+  <div
+    style={{
+      fontWeight: 600,
+      color: 'white',
+      fontSize: 15
+    }}
+  >
+    {p.messName || 'Unknown Mess'}
+  </div>
+
+  <div
+    style={{
+      fontSize: 12,
+      color: '#999'
+    }}
+  >
+    {p.messId}
+  </div>
+</div>
                   <div style={{fontSize:18,fontWeight:700,color:'#FAC775'}}>₹{p.amount}</div>
                 </div>
-                <div style={{fontSize:13,color:'#ccc',marginBottom:4,textTransform:'capitalize'}}>{p.plan} plan</div>
+                <div
+  style={{
+    display:'flex',
+    gap:8,
+    alignItems:'center',
+    marginBottom:4
+  }}
+>
+  <span
+    style={{
+      fontSize:13,
+      color:'#ccc',
+      textTransform:'capitalize'
+    }}
+  >
+    {p.plan} plan
+  </span>
+
+  <span
+    style={{
+      fontSize:11,
+      background:'#3a2f1f',
+      color:'#FAC775',
+      padding:'2px 8px',
+      borderRadius:999,
+      fontWeight:600
+    }}
+  >
+    NEW REGISTRATION
+  </span>
+</div>
                 <div style={{fontSize:11,color:'#777',marginBottom:14}}>Submitted {new Date(p.createdAt).toLocaleString()}</div>
                 <div style={{display:'flex',gap:8}}>
                   <button onClick={() => handlePayment(p._id, 'approve')}
@@ -167,10 +284,187 @@ async function handlePayment(paymentId, action) {
                     Reject
                   </button>
                 </div>
-              </div>
+              </div> 
+
             ))}
           </div>
-        )}
+          <div style={{ marginTop: 28 }}>
+  <div
+    style={{
+      color: 'white',
+      fontSize: 16,
+      fontWeight: 600,
+      marginBottom: 14
+    }}
+  >
+    Renewals ({renewalPayments.length})
+  </div>
+
+  {renewalPayments.length === 0 && (
+    <div style={{ color: '#888', marginBottom: 20 }}>
+      No pending renewals
+    </div>
+  )}
+
+  {renewalPayments.map(p => (
+    <div
+      key={p._id}
+      style={{
+        background:'#262626',
+        borderRadius:16,
+        padding:16,
+        border:'1px solid #5DCAA5'
+      }}
+    >
+      
+        <div
+  style={{
+    display:'flex',
+    justifyContent:'space-between',
+    marginBottom:8
+  }}
+>
+  <div>
+    <div
+      style={{
+        fontWeight:600,
+        color:'white',
+        fontSize:15
+      }}
+    >
+      {p.messName || 'Unknown Mess'}
+    </div>
+
+    <div
+      style={{
+        fontSize:12,
+        color:'#999'
+      }}
+    >
+      {p.messId}
+    </div>
+  </div>
+
+  <div
+    style={{
+      fontSize:18,
+      fontWeight:700,
+      color:'#5DCAA5'
+    }}
+  >
+    ₹{p.amount}
+  </div>
+</div> 
+<div
+  style={{
+    display:'flex',
+    gap:8,
+    alignItems:'center',
+    flexWrap:'wrap',
+    marginBottom:8
+  }}
+>
+  <span
+    style={{
+      fontSize:13,
+      color:'#ccc',
+      textTransform:'capitalize'
+    }}
+  >
+    New Plan: {p.plan}
+  </span>
+
+  <span
+    style={{
+      fontSize:11,
+      background:'#1f3a2f',
+      color:'#5DCAA5',
+      padding:'2px 8px',
+      borderRadius:999,
+      fontWeight:600
+    }}
+  >
+    RENEWAL
+  </span>
+</div>
+
+<div
+  style={{
+    fontSize:12,
+    color:'#aaa',
+    lineHeight:1.7,
+    marginBottom:10
+  }}
+>
+  <div><strong>Mess:</strong> {p.messName || '-'}</div>
+  <div><strong>Current Plan:</strong> {p.currentPlan || '-'}</div>
+  <div>
+    <strong>Current Expiry:</strong>{' '}
+    {p.currentExpiry
+      ? new Date(p.currentExpiry).toLocaleDateString()
+      : '-'}
+  </div>
+
+  <div>
+    <strong>Days Remaining:</strong>{' '}
+    {typeof p.daysRemaining === 'number'
+      ? p.daysRemaining
+      : '-'}
+  </div>
+</div>
+      
+      
+      <div
+        style={{
+          fontSize:11,
+          color:'#777',
+          marginBottom:14
+        }}
+      >
+        Submitted {new Date(p.createdAt).toLocaleString()}
+      </div>
+
+      <div style={{display:'flex',gap:8}}>
+        <button
+          onClick={() => handlePayment(p._id,'approve')}
+          style={{
+            flex:1,
+            padding:10,
+            borderRadius:10,
+            background:'#0F6E56',
+            color:'white',
+            fontSize:13,
+            fontWeight:500,
+            border:'none',
+            cursor:'pointer'
+          }}
+        >
+          ✓ Confirm payment received
+        </button>
+
+        <button
+          onClick={() => handlePayment(p._id,'reject')}
+          style={{
+            flex:1,
+            padding:10,
+            borderRadius:10,
+            background:'transparent',
+            color:'#ff6b6b',
+            fontSize:13,
+            fontWeight:500,
+            border:'1px solid #663333',
+            cursor:'pointer'
+          }}
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
+</div>
+
+)}
 
         {tab === 'tickets' && (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>

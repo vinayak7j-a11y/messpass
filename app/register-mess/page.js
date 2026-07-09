@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-
+import Link from 'next/link'
 const TAGLINES = [
   'Ghar jaisa khana, roz',
   'Fresh meals, every day',
@@ -48,14 +48,16 @@ export default function RegisterMess() {
       <h1 className="text-2xl font-semibold mb-2" style={{color:'#0F6E56'}}>Mess registered!</h1>
       <p className="text-sm text-gray-500 mb-1">Your Mess ID</p>
       <div className="text-lg font-mono font-semibold mb-6" style={{color:'#1a1a1a'}}>{success}</div>
-      <p className="text-sm text-gray-500">Taking you to your dashboard...</p>
+      <p className="text-sm text-gray-500">Redirecting you to complete your subscription...</p>
     </div>
   )
 
   return (
     <div className="min-h-screen px-6 py-10" style={{background:'#f5f5f0'}}>
       <div className="mb-8">
-        <a href="/" className="text-sm" style={{color:'#0F6E56'}}>← Back to login</a>
+        <Link href="/" className="text-sm" style={{ color: '#0F6E56' }}>
+  ← Back to login
+</Link>
         <h1 className="text-2xl font-medium mt-4">Register your mess</h1>
         <p className="text-sm text-gray-500 mt-1">Set up your MessPass account</p>
       </div>

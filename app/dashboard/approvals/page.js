@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 
 export default function Approvals() {
   const [customers, setCustomers] = useState([])
@@ -8,27 +8,7 @@ export default function Approvals() {
 
   const messIdRef = useRef(null)
   const prevCountRef = useRef(0)
-  const audioCtxRef = useRef(null)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('mess')
-
-    if (!stored) {
-      window.location.href = '/'
-      return
-    }
-
-    const m = JSON.parse(stored)
-    messIdRef.current = m.messId
-
-    fetchPending(m.messId, true)
-
-    const interval = setInterval(() => {
-      fetchPending(m.messId, false)
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
+  const audioCtxRef = useRef(null) 
 
   function playPing() {
     try {
@@ -49,20 +29,47 @@ export default function Approvals() {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100])
   }
 
-  async function fetchPending(messId, isInitial) {
-    const res = await fetch('/api/customers?messId=' + messId + '&status=pending')
-    const data = await res.json()
-    if (data.customers) {
-      if (!isInitial && data.customers.length > prevCountRef.current) {
-        playPing()
-        setFlash(true)
-        setTimeout(() => setFlash(false), 1500)
-      }
-      prevCountRef.current = data.customers.length
-      setCustomers(data.customers)
+  const fetchPending = useCallback(async (messId, isInitial) => {
+  const res = await fetch(
+    '/api/customers?messId=' + messId + '&status=pending'
+  )
+
+  const data = await res.json()
+
+  if (data.customers) {
+    if (!isInitial && data.customers.length > prevCountRef.current) {
+      playPing()
+      setFlash(true)
+      setTimeout(() => setFlash(false), 1500)
     }
-    setLoading(false)
+
+    prevCountRef.current = data.customers.length
+    setCustomers(data.customers)
   }
+
+  setLoading(false)
+}, [])
+
+  useEffect(() => {
+  const stored = localStorage.getItem('mess')
+
+  if (!stored) {
+    window.location.href = '/'
+    return
+  }
+
+  const m = JSON.parse(stored)
+  messIdRef.current = m.messId
+
+  fetchPending(m.messId, true)
+
+  const interval = setInterval(() => {
+    fetchPending(m.messId, false)
+  }, 5000)
+
+  return () => clearInterval(interval)
+}, [fetchPending])
+  
 
   async function handleApprove(customerId) {
     await fetch('/api/customers', {
