@@ -10,29 +10,45 @@ const PLANS = [
 ]
 
 export default function Subscribe() {
-  const [mess, setMess] = useState(null)
+  const [messId, setMessId] = useState(null)
+  const [messName, setMessName] = useState('')
+  const [isNewRegistration, setIsNewRegistration] = useState(false)
   const [selected, setSelected] = useState('monthly')
   const [stage, setStage] = useState('checking')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('mess')
-    if (!stored) { window.location.href = '/'; return }
-    const m = JSON.parse(stored)
-    setMess(m)
-    checkExistingStatus(m.messId)
+    const pendingStored = localStorage.getItem('pending_mess')
+    const messStored = localStorage.getItem('mess')
+
+    if (pendingStored) {
+      const p = JSON.parse(pendingStored)
+      setMessId(p.messId)
+      setMessName(p.name)
+      setIsNewRegistration(true)
+      checkExistingStatus(p.messId, true)
+    } else if (messStored) {
+      const m = JSON.parse(messStored)
+      setMessId(m.messId)
+      setMessName(m.name)
+      setIsNewRegistration(false)
+      checkExistingStatus(m.messId, false)
+    } else {
+      window.location.href = '/'
+    }
   }, [])
 
-  async function checkExistingStatus(messId) {
-    const res = await fetch('/api/subscription/status?messId=' + messId)
-    const data = await res.json()
-
-    if (data.subscriptionStatus === 'active') {
-      window.location.href = '/dashboard'
-      return
+  async function checkExistingStatus(mid, isNew) {
+    if (!isNew) {
+      const res = await fetch('/api/subscription/status?messId=' + mid)
+      const data = await res.json()
+      if (data.subscriptionStatus === 'active') {
+        window.location.href = '/dashboard'
+        return
+      }
     }
 
-    const payRes = await fetch('/api/subscription/pending?messId=' + messId)
+    const payRes = await fetch('/api/subscription/pending?messId=' + mid)
     const payData = await payRes.json()
 
     if (payData.payment) {
@@ -48,7 +64,7 @@ export default function Subscribe() {
     const res = await fetch('/api/subscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messId: mess.messId, plan: selected })
+      body: JSON.stringify({ messId, plan: selected })
     })
     if (res.ok) {
       setStage('pay')
@@ -58,18 +74,35 @@ export default function Subscribe() {
 
   async function checkStatusNow() {
     setLoading(true)
-    await checkExistingStatus(mess.messId)
+
+    if (isNewRegistration) {
+      const res = await fetch('/api/subscription/status?messId=' + messId)
+      const data = await res.json()
+      if (data.subscriptionStatus === 'active') {
+        // Payment was approved — a real Mess account now exists. Log them in properly.
+        const loginRes = await fetch('/api/subscription/activated?messId=' + messId)
+        const loginData = await loginRes.json()
+        if (loginData.mess) {
+          localStorage.removeItem('pending_mess')
+          localStorage.setItem('mess', JSON.stringify(loginData.mess))
+          window.location.href = '/dashboard'
+          return
+        }
+      }
+    }
+
+    await checkExistingStatus(messId, isNewRegistration)
     setLoading(false)
   }
 
-  if (!mess || stage === 'checking') return (
+  if (!messId || stage === 'checking') return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f5f5f0'}}>
       <div style={{color:'#999'}}>Loading...</div>
     </div>
   )
 
   const plan = PLANS.find(p => p.key === selected)
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${plan.price}&cu=INR&tn=${encodeURIComponent('MessPass ' + plan.label + ' - ' + mess.messId)}`
+  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${plan.price}&cu=INR&tn=${encodeURIComponent('MessPass ' + plan.label + ' - ' + messId)}`
 
   if (stage === 'pay') return (
     <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
@@ -77,7 +110,9 @@ export default function Subscribe() {
       <div style={{fontSize:22,fontWeight:600,color:'#1a1a1a',marginBottom:8}}>Complete your payment</div>
       <div style={{fontSize:14,color:'#999',marginBottom:24,maxWidth:340}}>
         Pay <b style={{color:'#0F6E56'}}>₹{plan.price}</b> via UPI for {plan.label} access.
-        Once we confirm your payment, your dashboard unlocks automatically.
+        {isNewRegistration
+          ? ' Your mess account activates the moment we confirm your payment.'
+          : ' Once confirmed, your subscription renews automatically.'}
       </div>
 
       <a href={upiLink}
@@ -91,7 +126,7 @@ export default function Subscribe() {
         <div style={{fontSize:12,color:'#999',marginTop:10,marginBottom:4}}>Amount</div>
         <div style={{fontSize:15,fontWeight:600,color:'#0F6E56'}}>₹{plan.price}</div>
         <div style={{fontSize:12,color:'#999',marginTop:10,marginBottom:4}}>Reference</div>
-        <div style={{fontSize:13,fontWeight:500}}>{mess.messId}</div>
+        <div style={{fontSize:13,fontWeight:500}}>{messId}</div>
       </div>
 
       <div style={{fontSize:12,color:'#999',lineHeight:1.6,marginBottom:20}}>
@@ -109,7 +144,7 @@ export default function Subscribe() {
     <div style={{minHeight:'100vh',background:'#f5f5f0'}}>
       <div style={{background:'#0F6E56',padding:'24px 16px',textAlign:'center'}}>
         <div style={{fontSize:20,fontWeight:600,color:'white'}}>Choose your plan</div>
-        <div style={{fontSize:13,color:'#9FE1CB',marginTop:4}}>Get {mess.name} up and running</div>
+        <div style={{fontSize:13,color:'#9FE1CB',marginTop:4}}>Get {messName} up and running</div>
       </div>
 
       <div style={{padding:'24px 16px'}}>

@@ -30,7 +30,7 @@ export default function RegisterMess() {
       const data = await res.json()
       if (!res.ok) { setError(data.error); setLoading(false); return }
 
-      localStorage.setItem('mess', JSON.stringify(data.mess))
+      localStorage.setItem('pending_mess', JSON.stringify(data.pending))
       setSuccess(data.mess.messId)
 
       setTimeout(() => {

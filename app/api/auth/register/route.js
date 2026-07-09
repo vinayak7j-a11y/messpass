@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongodb'
 import Mess from '@/lib/models/Mess'
+import PendingRegistration from '@/lib/models/PendingRegistration'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 
@@ -34,34 +35,38 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
     }
 
-    const existing = await Mess.findOne({ phone })
-    if (existing) {
+    const existingMess = await Mess.findOne({ phone })
+    if (existingMess) {
       return NextResponse.json({ error: 'Phone number already registered' }, { status: 400 })
+    }
+
+    const existingPending = await PendingRegistration.findOne({ phone })
+    if (existingPending) {
+      return NextResponse.json({
+        success: true,
+        pending: {
+          messId: existingPending.messId,
+          name: existingPending.name,
+          phone: existingPending.phone
+        }
+      }, { status: 200 })
     }
 
     const messId = generateMessId(name)
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const mess = await Mess.create({
+    const pending = await PendingRegistration.create({
       name, ownerName, phone, address, tagline,
       messId,
-      password: hashedPassword,
-      subscriptionStatus: 'pending_payment',
-      subscriptionPlan: null,
-      subscriptionExpiresAt: null
+      password: hashedPassword
     })
 
     return NextResponse.json({
       success: true,
-      mess: {
-        id: mess._id,
-        messId: mess.messId,
-        name: mess.name,
-        ownerName: mess.ownerName,
-        phone: mess.phone,
-        address: mess.address,
-        tagline: mess.tagline,
-        subscriptionStatus: mess.subscriptionStatus
+      pending: {
+        messId: pending.messId,
+        name: pending.name,
+        phone: pending.phone
       }
     }, { status: 201 })
 
