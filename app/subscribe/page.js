@@ -48,7 +48,7 @@ export default function Subscribe() {
       }
     }
 
-    const payRes = await fetch('/api/subscription/pending?messId=' + mid)
+    const payRes = await fetch('/api/subscription?messId=' + mid)
     const payData = await payRes.json()
 
     if (payData.payment) {

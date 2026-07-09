@@ -45,29 +45,37 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
-    if (!checkAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     await connectDB()
-    const payments = await SubscriptionPayment.find({ status: 'pending' }).sort({ createdAt: -1 })
 
-    const enriched = await Promise.all(payments.map(async (p) => {
-      const pending = await PendingRegistration.findOne({ messId: p.messId })
-      const existingMess = await Mess.findOne({ messId: p.messId })
-      return {
-        _id: p._id,
-        messId: p.messId,
-        plan: p.plan,
-        amount: p.amount,
-        createdAt: p.createdAt,
-        messName: pending?.name || existingMess?.name || 'Unknown',
-        ownerName: pending?.ownerName || existingMess?.ownerName || '',
-        phone: pending?.phone || existingMess?.phone || '',
-        isNewRegistration: !!pending
-      }
-    }))
+    const url = new URL(req.url)
+    const messId = url.searchParams.get('messId')
 
-    return NextResponse.json({ payments: enriched })
+    // Shop: Check its own pending payment
+    if (messId) {
+      const payment = await SubscriptionPayment.findOne({
+        messId,
+        status: 'pending'
+      }).sort({ createdAt: -1 })
+
+      return NextResponse.json({ payment: payment || null })
+    }
+
+    // Admin: Get all pending payments
+    if (!checkAdmin(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const payments = await SubscriptionPayment
+      .find({ status: 'pending' })
+      .sort({ createdAt: -1 })
+
+    return NextResponse.json({ payments })
   } catch (err) {
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+    console.error(err)
+    return NextResponse.json(
+      { error: 'Something went wrong' },
+      { status: 500 }
+    )
   }
 }
 
