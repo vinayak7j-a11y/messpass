@@ -31,7 +31,7 @@ export default function RegisterMess() {
       if (!res.ok) { setError(data.error); setLoading(false); return }
 
       localStorage.setItem('pending_mess', JSON.stringify(data.pending))
-      setSuccess(data.mess.messId)
+      setSuccess(data.pending.messId)
 
       setTimeout(() => {
         window.location.href = '/subscribe'
