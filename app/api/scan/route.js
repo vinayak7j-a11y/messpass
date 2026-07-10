@@ -55,12 +55,13 @@ if (existingMeal) {
     await customer.save()
 
     const mealNumber = customer.usedMeals
+    const scanTimestamp = new Date()
     await MealRecord.create({
       customerId: customer._id,
       messId,
       mealNumber,
       mealType,
-      timestamp: new Date()
+      timestamp: scanTimestamp
     })
 
     return NextResponse.json({
@@ -69,7 +70,8 @@ if (existingMeal) {
       mealNumber,
       mealType,
       remainingMeals: customer.remainingMeals,
-      totalMeals: customer.totalMeals
+      totalMeals: customer.totalMeals,
+      timestamp: scanTimestamp
     })
   } catch (err) {
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })

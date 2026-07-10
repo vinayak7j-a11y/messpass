@@ -14,6 +14,14 @@ export default function Register({ params }) {
   const [customer, setCustomer] = useState(null)
   const [scanResult, setScanResult] = useState(null)
   const [rememberedMobile, setRememberedMobile] = useState(null)
+  const [liveNow, setLiveNow] = useState(null)
+
+  useEffect(() => {
+    if (stage !== 'scan_result' || scanResult?.error || !scanResult?.timestamp) return
+    setLiveNow(Date.now())
+    const interval = setInterval(() => setLiveNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [stage, scanResult])
 
   useEffect(() => {
     params.then(p => {
@@ -56,6 +64,23 @@ export default function Register({ params }) {
     const res = await fetch('/api/register?messId=' + id)
     const data = await res.json()
     if (data.mess) { setMess(data.mess); setPlans(data.plans) }
+  }
+
+  function formatScanTime(iso) {
+    const d = new Date(iso)
+    return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
+  }
+
+  function formatLiveAge(iso, nowMs) {
+    if (!nowMs) return ''
+    const elapsed = Math.max(0, Math.floor((nowMs - new Date(iso).getTime()) / 1000))
+    if (elapsed < 60) return elapsed + 's ago'
+    const mins = Math.floor(elapsed / 60)
+    if (mins < 60) return mins + (mins === 1 ? ' min ago' : ' mins ago')
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago')
+    const days = Math.floor(hrs / 24)
+    return days + (days === 1 ? ' day ago' : ' days ago')
   }
 
   function reset() {
@@ -228,11 +253,21 @@ export default function Register({ params }) {
       <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
         <div style={{width:120,height:120,borderRadius:'50%',background:'#E1F5EE',border:'4px solid #0F6E56',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:60,color:'#0F6E56'}}>✓</div>
         <div style={{fontSize:40,fontWeight:700,color:'#1a1a1a'}}>Meal {scanResult?.mealNumber}</div>
-        <div style={{fontSize:16,color:'#999',marginTop:6,marginBottom:24,textTransform:'capitalize'}}>recorded · {scanResult?.mealType}</div>
+        <div style={{fontSize:16,color:'#999',marginTop:6,marginBottom:16,textTransform:'capitalize'}}>recorded · {scanResult?.mealType}</div>
+        {scanResult?.timestamp && (
+          <div style={{background:'white',borderRadius:14,padding:'10px 18px',marginBottom:20,display:'flex',alignItems:'center',gap:8}}>
+            <span style={{width:8,height:8,borderRadius:'50%',background:'#0F6E56',display:'inline-block',animation:'messpass-pulse 1s infinite'}} />
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#1a1a1a'}}>{formatScanTime(scanResult.timestamp)}</div>
+              <div style={{fontSize:11,color:'#0F6E56',fontWeight:600}}>{formatLiveAge(scanResult.timestamp, liveNow)}</div>
+            </div>
+          </div>
+        )}
         <a href={'/my-meals/' + messId} style={{background:'white',borderRadius:999,padding:'10px 24px',fontSize:14,color:'#999',textDecoration:'none',display:'inline-block'}}>
           <span style={{color:'#0F6E56',fontWeight:600}}>{scanResult?.remainingMeals}</span> meals remaining <span style={{color:'#ccc'}}>→</span>
         </a>
         <button type="button" onClick={() => setStage('closed')} style={{marginTop:32,padding:'12px 32px',borderRadius:12,background:'white',color:'#0F6E56',fontSize:14,fontWeight:500,border:'1px solid #0F6E56',cursor:'pointer'}}>Done</button>
+        <style>{`@keyframes messpass-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
       </div>
     )
   }
