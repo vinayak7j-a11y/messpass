@@ -5,11 +5,21 @@ import { NextResponse } from 'next/server'
 export async function GET(req) {
   try {
     await connectDB()
-    const messId = new URL(req.url).searchParams.get('messId')
-    if (!messId) return NextResponse.json({ error: 'messId required' }, { status: 400 })
+    const url = new URL(req.url)
+    const messId = url.searchParams.get('messId')
+    const token = url.searchParams.get('token')
+    if (!messId || !token) return NextResponse.json({ error: 'messId and token required' }, { status: 400 })
 
-    const mess = await Mess.findOne({ messId }).select('-password')
+    const mess = await Mess.findOne({ messId })
     if (!mess) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    if (!mess.activationToken || mess.activationToken !== token) {
+      return NextResponse.json({ error: 'Invalid or already-used activation link' }, { status: 401 })
+    }
+
+    // Single-use: burn the token now that it's been redeemed
+    mess.activationToken = null
+    await mess.save()
 
     return NextResponse.json({
       mess: {

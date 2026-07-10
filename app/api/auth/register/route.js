@@ -3,6 +3,7 @@ import Mess from '@/lib/models/Mess'
 import PendingRegistration from '@/lib/models/PendingRegistration'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 function generateMessId(name) {
   const clean = name.toUpperCase().replace(/\s+/g, '_').slice(0, 15)
@@ -42,23 +43,30 @@ export async function POST(req) {
 
     const existingPending = await PendingRegistration.findOne({ phone })
     if (existingPending) {
+      if (!existingPending.activationToken) {
+        existingPending.activationToken = crypto.randomBytes(24).toString('hex')
+        await existingPending.save()
+      }
       return NextResponse.json({
         success: true,
         pending: {
           messId: existingPending.messId,
           name: existingPending.name,
-          phone: existingPending.phone
+          phone: existingPending.phone,
+          token: existingPending.activationToken
         }
       }, { status: 200 })
     }
 
     const messId = generateMessId(name)
     const hashedPassword = await bcrypt.hash(password, 10)
+    const activationToken = crypto.randomBytes(24).toString('hex')
 
     const pending = await PendingRegistration.create({
       name, ownerName, phone, address, tagline,
       messId,
-      password: hashedPassword
+      password: hashedPassword,
+      activationToken
     })
 
     return NextResponse.json({
@@ -66,7 +74,8 @@ export async function POST(req) {
       pending: {
         messId: pending.messId,
         name: pending.name,
-        phone: pending.phone
+        phone: pending.phone,
+        token: pending.activationToken
       }
     }, { status: 201 })
 

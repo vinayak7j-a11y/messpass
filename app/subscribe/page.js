@@ -12,6 +12,7 @@ const PLANS = [
 export default function Subscribe() {
   const [messId, setMessId] = useState(null)
   const [messName, setMessName] = useState('')
+  const [activationToken, setActivationToken] = useState(null)
   const [isNewRegistration, setIsNewRegistration] = useState(false)
   const [selected, setSelected] = useState('monthly')
   const [stage, setStage] = useState('checking')
@@ -28,6 +29,7 @@ export default function Subscribe() {
       const p = JSON.parse(pendingStored)
       setMessId(p.messId)
       setMessName(p.name)
+      setActivationToken(p.token || null)
       setIsNewRegistration(true)
       checkExistingStatus(p.messId, true)
     } else if (messStored) {
@@ -84,7 +86,7 @@ export default function Subscribe() {
       const data = await res.json()
       if (data.subscriptionStatus === 'active') {
         // Payment was approved — a real Mess account now exists. Log them in properly.
-        const loginRes = await fetch('/api/subscription/activated?messId=' + messId)
+        const loginRes = await fetch('/api/subscription/activated?messId=' + messId + '&token=' + encodeURIComponent(activationToken || ''))
         const loginData = await loginRes.json()
         if (loginData.mess) {
           localStorage.removeItem('pending_mess')

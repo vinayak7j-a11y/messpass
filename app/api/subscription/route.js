@@ -227,22 +227,29 @@ export async function PATCH(req) {
     }
 
     // APPROVE
-    payment.status = 'approved'
-    payment.approvedAt = new Date()
-    await payment.save()
-
     const days = PLAN_DAYS[payment.plan]
     const now = new Date()
 
     let mess = await Mess.findOne({ messId: payment.messId })
+    let pending = null
+
+    if (payment.type === 'registration') {
+      // Validate the pending registration still exists BEFORE committing to
+      // marking this payment approved (it auto-deletes after 7 days via TTL
+      // index, so a late approval could otherwise mark the payment 'approved'
+      // while no account is ever created).
+      pending = await PendingRegistration.findOne({ messId: payment.messId })
+      if (!pending) {
+        return NextResponse.json({ error: 'Pending registration no longer exists (registration window expired after 7 days) — ask the owner to register again' }, { status: 404 })
+      }
+    }
+
+    payment.status = 'approved'
+    payment.approvedAt = new Date()
+    await payment.save()
 
     if (payment.type === 'registration') {
       // First-time approval — this is when the real Mess account actually gets created
-      const pending = await PendingRegistration.findOne({ messId: payment.messId })
-      if (!pending) {
-        return NextResponse.json({ error: 'Pending registration no longer exists' }, { status: 404 })
-      }
-
       const newExpiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
 
       mess = await Mess.create({
@@ -255,7 +262,8 @@ export async function PATCH(req) {
         password: pending.password,
         subscriptionStatus: 'active',
         subscriptionPlan: payment.plan,
-        subscriptionExpiresAt: newExpiry
+        subscriptionExpiresAt: newExpiry,
+        activationToken: pending.activationToken || null
       })
 
       await PendingRegistration.deleteOne({ messId: payment.messId })
