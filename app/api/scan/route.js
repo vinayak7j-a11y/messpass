@@ -23,26 +23,26 @@ export async function POST(req) {
     if (customer.remainingMeals <= 0) {
       return NextResponse.json({ error: 'expired', customer })
     }
-
-    // Calculate current time in Indian Standard Time (IST)
+// Calculate current time in Indian Standard Time (IST)
 const now = new Date()
 
-const istNow = new Date(
-  now.toLocaleString('en-US', {
-    timeZone: 'Asia/Kolkata'
-  })
-)
+const istOffsetMs = 5.5 * 60 * 60 * 1000
+const istNow = new Date(now.getTime() + istOffsetMs)
 
-const hour = istNow.getHours()
+const hour = istNow.getUTCHours()
 
 const mealType = hour < 17 ? 'lunch' : 'dinner'
 
-// Start and end of the current IST day
+// Start of current IST day (converted back to UTC)
 const startOfDay = new Date(istNow)
-startOfDay.setHours(0, 0, 0, 0)
+startOfDay.setUTCHours(0, 0, 0, 0)
+startOfDay.setTime(startOfDay.getTime() - istOffsetMs)
 
+// End of current IST day (converted back to UTC)
 const endOfDay = new Date(istNow)
-endOfDay.setHours(23, 59, 59, 999)
+endOfDay.setUTCHours(23, 59, 59, 999)
+endOfDay.setTime(endOfDay.getTime() - istOffsetMs)
+    
 
 const existingMeal = await MealRecord.findOne({
   customerId: customer._id,
@@ -66,7 +66,7 @@ if (existingMeal) {
     await customer.save()
 
     const mealNumber = customer.usedMeals
-    const scanTimestamp = istNow
+    const scanTimestamp = now
     await MealRecord.create({
       customerId: customer._id,
       messId,
@@ -85,6 +85,11 @@ if (existingMeal) {
       timestamp: scanTimestamp
     })
   } catch (err) {
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
-  }
+  console.error(err)
+
+  return NextResponse.json(
+    { error: 'Something went wrong' },
+    { status: 500 }
+  )
+} 
 }
