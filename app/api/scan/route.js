@@ -24,13 +24,24 @@ export async function POST(req) {
       return NextResponse.json({ error: 'expired', customer })
     }
 
-    const hour = new Date().getHours()
+    // Calculate current time in Indian Standard Time (IST)
+const now = new Date()
+
+const istNow = new Date(
+  now.toLocaleString('en-US', {
+    timeZone: 'Asia/Kolkata'
+  })
+)
+
+const hour = istNow.getHours()
+
 const mealType = hour < 17 ? 'lunch' : 'dinner'
 
-const startOfDay = new Date()
+// Start and end of the current IST day
+const startOfDay = new Date(istNow)
 startOfDay.setHours(0, 0, 0, 0)
 
-const endOfDay = new Date()
+const endOfDay = new Date(istNow)
 endOfDay.setHours(23, 59, 59, 999)
 
 const existingMeal = await MealRecord.findOne({
@@ -55,7 +66,7 @@ if (existingMeal) {
     await customer.save()
 
     const mealNumber = customer.usedMeals
-    const scanTimestamp = new Date()
+    const scanTimestamp = istNow
     await MealRecord.create({
       customerId: customer._id,
       messId,
