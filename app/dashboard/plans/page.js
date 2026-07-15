@@ -6,7 +6,8 @@ export default function Plans() {
   const [plans, setPlans] = useState([])
   const [mess, setMess] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({name:'', totalMeals:'', price:''})
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState({name:'', totalMeals:'', price:'', validityDays:''})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -29,21 +30,34 @@ export default function Plans() {
       setError('All fields required'); return
     }
     setLoading(true)
+    const isEdit = !!editingId
     const res = await fetch('/api/plans', {
-      method: 'POST',
+      method: isEdit ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, messId: mess.messId })
+      body: JSON.stringify(isEdit ? { ...form, id: editingId } : { ...form, messId: mess.messId })
     })
     const data = await res.json()
     if (res.ok) {
-      setPlans([...plans, data.plan])
-      setForm({name:'', totalMeals:'', price:''})
+      if (isEdit) {
+        setPlans(plans.map(p => p._id === editingId ? data.plan : p))
+      } else {
+        setPlans([...plans, data.plan])
+      }
+      setForm({name:'', totalMeals:'', price:'', validityDays:''})
       setShowForm(false)
+      setEditingId(null)
       setError('')
     } else {
       setError(data.error)
     }
     setLoading(false)
+  }
+
+  function handleEdit(p) {
+    setEditingId(p._id)
+    setForm({ name: p.name, totalMeals: String(p.totalMeals), price: String(p.price), validityDays: p.validityDays ? String(p.validityDays) : '' })
+    setShowForm(true)
+    setError('')
   }
 
   async function handleDelete(planId) {
@@ -76,22 +90,32 @@ export default function Plans() {
                 <div style={{fontSize:28,fontWeight:500,color:'#0F6E56',marginTop:4}}>{p.totalMeals}</div>
                 <div style={{fontSize:12,color:'#999'}}>meals</div>
                 <div style={{fontSize:15,fontWeight:500,marginTop:8}}>₹{p.price}</div>
+                <div style={{fontSize:12,color:'#999',marginTop:4}}>
+                  {p.validityDays ? `Valid for ${p.validityDays} days` : 'No expiry'}
+                </div>
               </div>
-              <button onClick={() => handleDelete(p._id)}
-                style={{fontSize:12,color:'#cc0000',border:'1px solid #fcc',borderRadius:8,padding:'6px 12px',background:'white',cursor:'pointer'}}>
-                Delete
-              </button>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={() => handleEdit(p)}
+                  style={{fontSize:12,color:'#0F6E56',border:'1px solid #cfe9e2',borderRadius:8,padding:'6px 12px',background:'white',cursor:'pointer'}}>
+                  Edit
+                </button>
+                <button onClick={() => handleDelete(p._id)}
+                  style={{fontSize:12,color:'#cc0000',border:'1px solid #fcc',borderRadius:8,padding:'6px 12px',background:'white',cursor:'pointer'}}>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}
 
         {showForm && (
           <div style={{background:'white',borderRadius:16,padding:16,marginBottom:12,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
-            <div style={{fontWeight:500,marginBottom:16}}>New plan</div>
+            <div style={{fontWeight:500,marginBottom:16}}>{editingId ? 'Edit plan' : 'New plan'}</div>
             {[
               {key:'name', label:'Plan name', placeholder:'e.g. Standard'},
               {key:'totalMeals', label:'Number of meals', placeholder:'e.g. 58', type:'number'},
               {key:'price', label:'Price (₹)', placeholder:'e.g. 1500', type:'number'},
+              {key:'validityDays', label:'Validity in days (optional — leave blank for no expiry)', placeholder:'e.g. 45', type:'number'},
             ].map(f => (
               <div key={f.key} style={{marginBottom:12}}>
                 <label style={{fontSize:12,color:'#999',display:'block',marginBottom:4}}>{f.label}</label>
@@ -110,7 +134,7 @@ export default function Plans() {
                 style={{flex:1,padding:'12px',borderRadius:10,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer'}}>
                 {loading ? 'Saving...' : 'Save plan'}
               </button>
-              <button onClick={() => {setShowForm(false);setError('')}}
+              <button onClick={() => {setShowForm(false);setEditingId(null);setForm({name:'', totalMeals:'', price:'', validityDays:''});setError('')}}
                 style={{flex:1,padding:'12px',borderRadius:10,background:'#f5f5f0',color:'#333',fontSize:14,border:'none',cursor:'pointer'}}>
                 Cancel
               </button>

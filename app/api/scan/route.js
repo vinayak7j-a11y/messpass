@@ -20,7 +20,13 @@ export async function POST(req) {
     if (customer.status === 'pending') return NextResponse.json({ error: 'pending', customer })
     if (customer.status === 'rejected') return NextResponse.json({ error: 'rejected', customer })
 
-    if (customer.remainingMeals <= 0) {
+    if (customer.planExpiresAt && new Date() > customer.planExpiresAt && customer.status !== 'expired') {
+      customer.status = 'expired'
+      customer.remainingMeals = 0
+      await customer.save()
+    }
+
+    if (customer.remainingMeals <= 0 || customer.status === 'expired') {
       return NextResponse.json({ error: 'expired', customer })
     }
 // Current server time (UTC)

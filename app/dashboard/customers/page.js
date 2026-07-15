@@ -159,6 +159,23 @@ export default function Customers() {
             </div>
           </div>
 
+          {selected.planExpiresAt && (
+            <div style={{background:'white',borderRadius:14,padding:14,marginBottom:16}}>
+              <div style={{fontSize:11,color:'#999',marginBottom:4}}>Plan validity</div>
+              {(() => {
+                const daysLeft = Math.ceil((new Date(selected.planExpiresAt) - new Date()) / (24 * 60 * 60 * 1000))
+                const expired = daysLeft <= 0 || selected.status === 'expired'
+                return (
+                  <div style={{fontSize:15,fontWeight:600,color: expired ? '#cc0000' : '#0F6E56'}}>
+                    {expired
+                      ? `Expired on ${new Date(selected.planExpiresAt).toLocaleDateString('en-IN', {day:'numeric',month:'short'})}`
+                      : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left · until ${new Date(selected.planExpiresAt).toLocaleDateString('en-IN', {day:'numeric',month:'short'})}`}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
           <button onClick={() => setShowRenew(true)}
             style={{width:'100%',padding:14,borderRadius:14,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer',marginBottom:10}}>
             Renew subscription
