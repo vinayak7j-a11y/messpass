@@ -13,8 +13,14 @@ export async function GET(req) {
     const active = await Customer.countDocuments({ messId, status: 'active' })
     const pending = await Customer.countDocuments({ messId, status: 'pending' })
 
-    const startOfDay = new Date()
-    startOfDay.setHours(0,0,0,0)
+    // 'Today' must be the IST calendar day, not the server's local (UTC) day —
+    // UTC midnight is 5:30 AM IST, so a naive server-local startOfDay miscounts
+    // anything scanned between 12:00 AM and 5:29 AM IST as the previous day.
+    const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000
+    const istNow = new Date(Date.now() + IST_OFFSET_MS)
+    const startOfDay = new Date(
+      Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate(), 0, 0, 0, 0) - IST_OFFSET_MS
+    )
     const mealsToday = await MealRecord.countDocuments({ messId, timestamp: { $gte: startOfDay } })
 
     const recentMeals = await MealRecord.find({ messId, timestamp: { $gte: startOfDay } })

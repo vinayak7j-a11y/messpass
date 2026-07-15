@@ -21,6 +21,10 @@ export async function POST(req) {
     if (action === '+1') {
       customer.usedMeals = Math.max(0, customer.usedMeals - 1)
       customer.remainingMeals = Math.min(customer.totalMeals, customer.remainingMeals + 1)
+      const stillWithinValidity = !customer.planExpiresAt || customer.planExpiresAt > new Date()
+      if (customer.status === 'expired' && customer.remainingMeals > 0 && stillWithinValidity) {
+        customer.status = 'active'
+      }
     } else {
       if (customer.remainingMeals <= 0) {
         return NextResponse.json({ error: 'No meals remaining to deduct' }, { status: 400 })

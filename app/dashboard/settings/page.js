@@ -15,11 +15,11 @@ export default function Settings() {
     const stored = localStorage.getItem('mess')
     if (!stored) { window.location.href = '/'; return }
     const m = JSON.parse(stored)
-    fetchMess(m.messId)
+    fetchMess(m.messId, m.phone)
   }, [])
 
-  async function fetchMess(messId) {
-    const res = await fetch('/api/mess?messId=' + messId)
+  async function fetchMess(messId, phone) {
+    const res = await fetch('/api/mess?messId=' + messId + '&phone=' + encodeURIComponent(phone || ''))
     const data = await res.json()
     if (data.mess) {
       setMess(data.mess)

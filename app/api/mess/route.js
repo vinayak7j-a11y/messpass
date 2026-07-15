@@ -10,11 +10,18 @@ function normalizePhone(phone) {
 export async function GET(req) {
   try {
     await connectDB()
-    const messId = new URL(req.url).searchParams.get('messId')
+    const url = new URL(req.url)
+    const messId = url.searchParams.get('messId')
+    const phone = normalizePhone(url.searchParams.get('phone'))
     if (!messId) return NextResponse.json({ error: 'messId required' }, { status: 400 })
-    const mess = await Mess.findOne({ messId }).select('-password')
+    const mess = await Mess.findOne({ messId })
     if (!mess) return NextResponse.json({ error: 'Mess not found' }, { status: 404 })
-    return NextResponse.json({ mess })
+    if (!phone || phone !== mess.phone) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const safeMess = mess.toObject()
+    delete safeMess.password
+    return NextResponse.json({ mess: safeMess })
   } catch (err) {
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
   }

@@ -21,8 +21,11 @@ export async function GET(req) {
       const activeCustomers = await Customer.countDocuments({ messId: m.messId, status: 'active' })
       const totalMeals = await MealRecord.countDocuments({ messId: m.messId })
 
-      const startOfDay = new Date()
-      startOfDay.setHours(0,0,0,0)
+      const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000
+      const istNow = new Date(Date.now() + IST_OFFSET_MS)
+      const startOfDay = new Date(
+        Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate(), 0, 0, 0, 0) - IST_OFFSET_MS
+      )
       const mealsToday = await MealRecord.countDocuments({ messId: m.messId, timestamp: { $gte: startOfDay } })
 
       return {
