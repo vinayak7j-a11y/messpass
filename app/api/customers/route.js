@@ -50,7 +50,10 @@ export async function PATCH(req) {
           remainingMeals: plan.totalMeals,
           status: 'active',
           planStartedAt: now,
-          planExpiresAt
+          planExpiresAt,
+          onHold: false,
+          holdReason: null,
+          holdStartedAt: null
         },
         { new: true }
       ).populate('planId')

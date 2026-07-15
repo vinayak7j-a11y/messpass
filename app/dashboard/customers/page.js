@@ -34,6 +34,7 @@ export default function Customers() {
   }
 
   async function handleRenew(planId) {
+    if (selected.onHold && !confirm('This customer is currently on hold. Renewing will end the hold and reset their meals to the new plan — continue?')) return
     setRenewing(true)
     const res = await fetch('/api/customers', {
       method: 'PATCH',
