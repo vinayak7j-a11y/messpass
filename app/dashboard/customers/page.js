@@ -14,6 +14,9 @@ export default function Customers() {
   const [adjustAction, setAdjustAction] = useState('')
   const [adjustReason, setAdjustReason] = useState('')
   const [adjusting, setAdjusting] = useState(false)
+  const [showHold, setShowHold] = useState(false)
+  const [holdReason, setHoldReason] = useState('')
+  const [holding, setHolding] = useState(false)
   
   useEffect(() => {
     const stored = localStorage.getItem('mess')
@@ -67,6 +70,40 @@ export default function Customers() {
       setShowAdjust(false)
     }
     setAdjusting(false)
+  }
+
+  async function submitHold() {
+    if (!holdReason.trim()) return
+    setHolding(true)
+    const res = await fetch('/api/hold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: selected._id, messId, action: 'hold', reason: holdReason })
+    })
+    const data = await res.json()
+    if (data.customer) {
+      setSelected(data.customer)
+      setCustomers(customers.map(c => c._id === data.customer._id ? data.customer : c))
+      setShowHold(false)
+      setHoldReason('')
+    }
+    setHolding(false)
+  }
+
+  async function handleResume() {
+    if (!confirm('Resume meal tracking for ' + selected.name + '? Their remaining validity days will pick up where they left off.')) return
+    setHolding(true)
+    const res = await fetch('/api/hold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: selected._id, messId, action: 'resume' })
+    })
+    const data = await res.json()
+    if (data.customer) {
+      setSelected(data.customer)
+      setCustomers(customers.map(c => c._id === data.customer._id ? data.customer : c))
+    }
+    setHolding(false)
   }
 
   async function fetchCustomers(mid) {
@@ -176,10 +213,28 @@ export default function Customers() {
             </div>
           )}
 
+          {selected.onHold && (
+            <div style={{background:'#E7ECF5',border:'1px solid #C4D0E8',borderRadius:14,padding:14,marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#33456B',marginBottom:2}}>⏸️ On hold</div>
+              <div style={{fontSize:12,color:'#5A6B8C',marginBottom:10}}>{selected.holdReason}</div>
+              <button onClick={handleResume} disabled={holding}
+                style={{width:'100%',padding:10,borderRadius:10,background:'#33456B',color:'white',fontSize:13,fontWeight:500,border:'none',cursor:'pointer'}}>
+                {holding ? 'Resuming...' : 'Resume tracking'}
+              </button>
+            </div>
+          )}
+
           <button onClick={() => setShowRenew(true)}
             style={{width:'100%',padding:14,borderRadius:14,background:'#0F6E56',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer',marginBottom:10}}>
             Renew subscription
           </button>
+
+          {!selected.onHold && (
+            <button onClick={() => setShowHold(true)}
+              style={{width:'100%',padding:12,borderRadius:12,background:'white',color:'#33456B',fontSize:13,fontWeight:500,border:'1px solid #C4D0E8',cursor:'pointer',marginBottom:16}}>
+              Put meals on hold
+            </button>
+          )}
           <div style={{display:'flex',gap:8,marginBottom:16}}>
   <button
     onClick={() => openAdjust('+1')}
@@ -288,6 +343,38 @@ export default function Customers() {
             </div>
           )}
 
+          {showHold && (
+            <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',zIndex:50}} onClick={() => setShowHold(false)}>
+              <div style={{background:'white',borderRadius:'20px 20px 0 0',padding:20,width:'100%'}} onClick={e => e.stopPropagation()}>
+                <div style={{fontWeight:600,fontSize:16,marginBottom:4}}>Put meals on hold</div>
+                <div style={{fontSize:12,color:'#999',marginBottom:14}}>Scanning will be paused. If their plan has a validity window, it'll be extended by however long they're on hold — they won't lose any days.</div>
+                <label style={{fontSize:12,color:'#999',display:'block',marginBottom:8}}>Reason</label>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
+                  {['Going home', 'Travelling', 'Not well', 'Other...'].map(r => (
+                    <button key={r} type="button" onClick={() => setHoldReason(r)}
+                      style={{padding:'8px 12px',borderRadius:999,border:'1px solid ' + (holdReason === r ? '#33456B' : '#ddd'),background:holdReason === r ? '#E7ECF5' : 'white',color:holdReason === r ? '#33456B' : '#333',cursor:'pointer',fontSize:13}}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                {holdReason === 'Other...' && (
+                  <input type="text" placeholder="Enter reason..." onChange={e => setHoldReason(e.target.value)}
+                    style={{width:'100%',border:'1px solid #eee',borderRadius:10,padding:'10px 14px',fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:14}} />
+                )}
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={submitHold} disabled={holding || !holdReason.trim()}
+                    style={{flex:1,padding:12,borderRadius:10,background:holding?'#9FB0D6':'#33456B',color:'white',fontSize:14,fontWeight:500,border:'none',cursor:'pointer'}}>
+                    {holding ? 'Saving...' : 'Put on hold'}
+                  </button>
+                  <button onClick={() => {setShowHold(false); setHoldReason('')}}
+                    style={{flex:1,padding:12,borderRadius:10,background:'#f5f5f0',border:'none',fontSize:14,color:'#666',cursor:'pointer'}}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {showRenew && (
             <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',zIndex:50}} onClick={() => setShowRenew(false)}>
               <div style={{background:'white',borderRadius:'20px 20px 0 0',padding:20,width:'100%',maxHeight:'70vh',overflowY:'auto'}} onClick={e => e.stopPropagation()}>
@@ -373,6 +460,9 @@ export default function Customers() {
               <div style={{fontSize:12,color:'#999'}}>{c.mobile}</div>
             </div>
            <div style={{display:'flex',alignItems:'center',gap:8}}>
+  {c.onHold && (
+    <span style={{fontSize:11,fontWeight:600,color:'#33456B',background:'#E7ECF5',borderRadius:999,padding:'3px 8px'}}>⏸️ Hold</span>
+  )}
   <div
     style={{
       width:10,

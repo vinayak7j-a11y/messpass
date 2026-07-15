@@ -16,7 +16,7 @@ export async function GET(req) {
     if (status) query.status = status
     const now = new Date()
     await Customer.updateMany(
-      { messId, status: 'active', planExpiresAt: { $ne: null, $lte: now } },
+      { messId, status: 'active', onHold: { $ne: true }, planExpiresAt: { $ne: null, $lte: now } },
       { status: 'expired', remainingMeals: 0 }
     )
     const customers = await Customer.find(query).populate('planId').sort({ createdAt: -1 })

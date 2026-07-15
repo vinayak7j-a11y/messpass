@@ -19,6 +19,7 @@ export async function POST(req) {
 
     if (customer.status === 'pending') return NextResponse.json({ error: 'pending', customer })
     if (customer.status === 'rejected') return NextResponse.json({ error: 'rejected', customer })
+    if (customer.onHold) return NextResponse.json({ error: 'on_hold', customer })
 
     if (customer.planExpiresAt && new Date() > customer.planExpiresAt && customer.status !== 'expired') {
       customer.status = 'expired'

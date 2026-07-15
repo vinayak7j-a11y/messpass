@@ -249,6 +249,14 @@ export default function Register({ params }) {
         <button type="button" onClick={() => setStage('closed')} style={{padding:'12px 32px',borderRadius:12,background:'#0F6E56',color:'white',fontSize:15,fontWeight:500,border:'none',cursor:'pointer'}}>Done</button>
       </div>
     )
+    if (err === 'on_hold') return (
+      <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+        <div style={{width:100,height:100,borderRadius:'50%',background:'#E7ECF5',border:'3px solid #7C93C7',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:48}}>⏸️</div>
+        <div style={{fontSize:22,fontWeight:600,color:'#33456B',marginBottom:8}}>Meals on hold</div>
+        <div style={{fontSize:14,color:'#999',marginBottom:24}}>{scanResult?.customer?.holdReason ? `Reason: ${scanResult.customer.holdReason}. ` : ''}Ask the mess owner to resume tracking when you're back.</div>
+        <button type="button" onClick={() => setStage('closed')} style={{padding:'12px 32px',borderRadius:12,background:'#0F6E56',color:'white',fontSize:15,fontWeight:500,border:'none',cursor:'pointer'}}>Done</button>
+      </div>
+    )
     return (
       <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
         <div style={{width:120,height:120,borderRadius:'50%',background:'#E1F5EE',border:'4px solid #0F6E56',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:60,color:'#0F6E56'}}>✓</div>

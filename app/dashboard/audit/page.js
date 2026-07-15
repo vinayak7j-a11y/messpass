@@ -47,14 +47,20 @@ export default function Audit() {
 
         {logs.map(log => {
           const date = new Date(log.timestamp)
+          const badge = {
+            '+1': { bg: '#E1F5EE', color: '#0F6E56', label: '+1 meal' },
+            '-1': { bg: '#FCEBEB', color: '#A32D2D', label: '-1 meal' },
+            'hold': { bg: '#E7ECF5', color: '#33456B', label: 'On hold' },
+            'resume': { bg: '#E1F5EE', color: '#0F6E56', label: 'Resumed' }
+          }[log.action] || { bg: '#f0f0f0', color: '#666', label: log.action }
           return (
             <div key={log._id} style={{background:'white',borderRadius:14,padding:14,marginBottom:10,boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                 <div style={{fontWeight:500,fontSize:14}}>{log.customerName}</div>
                 <span style={{fontSize:12,fontWeight:600,padding:'2px 10px',borderRadius:999,
-                  background: log.action==='+1' ? '#E1F5EE' : '#FCEBEB',
-                  color: log.action==='+1' ? '#0F6E56' : '#A32D2D'}}>
-                  {log.action} meal
+                  background: badge.bg,
+                  color: badge.color}}>
+                  {badge.label}
                 </span>
               </div>
               <div style={{fontSize:13,color:'#666',marginBottom:4}}>{log.reason}</div>
