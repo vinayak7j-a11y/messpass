@@ -23,25 +23,41 @@ export async function POST(req) {
     if (customer.remainingMeals <= 0) {
       return NextResponse.json({ error: 'expired', customer })
     }
-// Calculate current time in Indian Standard Time (IST)
+// Current server time (UTC)
 const now = new Date()
 
-const istOffsetMs = 5.5 * 60 * 60 * 1000
-const istNow = new Date(now.getTime() + istOffsetMs)
+// Current IST time (UTC +5:30)
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000
+const istTime = new Date(now.getTime() + IST_OFFSET_MS)
 
-const hour = istNow.getUTCHours()
-
+const hour = istTime.getUTCHours()
 const mealType = hour < 17 ? 'lunch' : 'dinner'
 
-// Start of current IST day (converted back to UTC)
-const startOfDay = new Date(istNow)
-startOfDay.setUTCHours(0, 0, 0, 0)
-startOfDay.setTime(startOfDay.getTime() - istOffsetMs)
+// Beginning of today's IST day (converted back to UTC)
+const startOfDay = new Date(
+  Date.UTC(
+    istTime.getUTCFullYear(),
+    istTime.getUTCMonth(),
+    istTime.getUTCDate(),
+    0,
+    0,
+    0,
+    0
+  ) - IST_OFFSET_MS
+)
 
-// End of current IST day (converted back to UTC)
-const endOfDay = new Date(istNow)
-endOfDay.setUTCHours(23, 59, 59, 999)
-endOfDay.setTime(endOfDay.getTime() - istOffsetMs)
+// End of today's IST day (converted back to UTC)
+const endOfDay = new Date(
+  Date.UTC(
+    istTime.getUTCFullYear(),
+    istTime.getUTCMonth(),
+    istTime.getUTCDate(),
+    23,
+    59,
+    59,
+    999
+  ) - IST_OFFSET_MS
+)
     
 
 const existingMeal = await MealRecord.findOne({
