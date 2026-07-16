@@ -68,9 +68,20 @@ export default function MyMeals({ params }) {
           </div>
           <div style={{background:'white',borderRadius:14,padding:14,textAlign:'center'}}>
             <div style={{fontSize:11,color:'#999',marginBottom:4}}>Remaining</div>
-            <div style={{fontSize:22,fontWeight:600,color: customer.remainingMeals <= 5 ? '#A32D2D' : '#0F6E56'}}>{customer.remainingMeals}</div>
+            <div style={{fontSize:22,fontWeight:600,color: customer.remainingMeals <= 3 ? '#A32D2D' : '#0F6E56'}}>{customer.remainingMeals}</div>
           </div>
         </div>
+
+        {customer.remainingMeals > 0 && customer.remainingMeals <= 3 && (
+          <div style={{background:'#FEF3E2',border:'1px solid #F5C98A',borderRadius:14,padding:'10px 16px',marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:600,color:'#854F0B'}}>⚠️ Only {customer.remainingMeals} meal{customer.remainingMeals === 1 ? '' : 's'} left — renew soon</div>
+          </div>
+        )}
+        {customer.status === 'expired' && (
+          <div style={{background:'#FCEBEB',border:'1px solid #f3c2c2',borderRadius:14,padding:'10px 16px',marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:600,color:'#A32D2D'}}>⛔ Plan expired — contact the mess owner to renew</div>
+          </div>
+        )}
 
         <div style={{background:'white',borderRadius:16,padding:16}}>
           <div style={{fontWeight:500,fontSize:14,marginBottom:4}}>Meal history</div>

@@ -197,6 +197,15 @@ export default function Customers() {
             </div>
           </div>
 
+          {selected.status === 'expired' && (
+            <div style={{background:'#FCEBEB',border:'1px solid #f3c2c2',borderRadius:14,padding:14,marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#A32D2D'}}>
+                ⛔ Expired — {selected.remainingMeals <= 0 && (!selected.planExpiresAt || new Date(selected.planExpiresAt) > new Date()) ? 'all meals used up' : 'validity period ended'}
+              </div>
+              <div style={{fontSize:12,color:'#A32D2D',marginTop:2}}>Customer can't mark meals until renewed.</div>
+            </div>
+          )}
+
           {selected.planExpiresAt && (
             <div style={{background:'white',borderRadius:14,padding:14,marginBottom:16}}>
               <div style={{fontSize:11,color:'#999',marginBottom:4}}>Plan validity</div>
@@ -463,6 +472,9 @@ export default function Customers() {
            <div style={{display:'flex',alignItems:'center',gap:8}}>
   {c.onHold && (
     <span style={{fontSize:11,fontWeight:600,color:'#33456B',background:'#E7ECF5',borderRadius:999,padding:'3px 8px'}}>⏸️ Hold</span>
+  )}
+  {!c.onHold && c.status === 'expired' && (
+    <span style={{fontSize:11,fontWeight:600,color:'#A32D2D',background:'#FCEBEB',borderRadius:999,padding:'3px 8px'}}>Expired</span>
   )}
   <div
     style={{

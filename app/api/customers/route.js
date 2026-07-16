@@ -19,6 +19,10 @@ export async function GET(req) {
       { messId, status: 'active', onHold: { $ne: true }, planExpiresAt: { $ne: null, $lte: now } },
       { status: 'expired', remainingMeals: 0 }
     )
+    await Customer.updateMany(
+      { messId, status: 'active', onHold: { $ne: true }, remainingMeals: { $lte: 0 } },
+      { status: 'expired', remainingMeals: 0 }
+    )
     const customers = await Customer.find(query).populate('planId').sort({ createdAt: -1 })
     return NextResponse.json({ customers })
   } catch (err) {

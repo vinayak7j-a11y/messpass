@@ -21,13 +21,15 @@ export async function POST(req) {
     if (customer.status === 'rejected') return NextResponse.json({ error: 'rejected', customer })
     if (customer.onHold) return NextResponse.json({ error: 'on_hold', customer })
 
-    if (customer.planExpiresAt && new Date() > customer.planExpiresAt && customer.status !== 'expired') {
+    const checkTime = new Date()
+    const timeExpired = customer.planExpiresAt && checkTime > customer.planExpiresAt
+    if ((timeExpired || customer.remainingMeals <= 0) && customer.status !== 'expired') {
       customer.status = 'expired'
       customer.remainingMeals = 0
       await customer.save()
     }
 
-    if (customer.remainingMeals <= 0 || customer.status === 'expired') {
+    if (customer.status === 'expired') {
       return NextResponse.json({ error: 'expired', customer })
     }
 // Current server time (UTC)
@@ -86,6 +88,9 @@ if (existingMeal) {
 
     customer.usedMeals += 1
     customer.remainingMeals -= 1
+    if (customer.remainingMeals <= 0) {
+      customer.status = 'expired'
+    }
     await customer.save()
 
     const mealNumber = customer.usedMeals

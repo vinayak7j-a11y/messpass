@@ -31,6 +31,9 @@ export async function POST(req) {
       }
       customer.usedMeals += 1
       customer.remainingMeals -= 1
+      if (customer.remainingMeals <= 0) {
+        customer.status = 'expired'
+      }
     }
 
     await customer.save()

@@ -271,8 +271,14 @@ export default function Register({ params }) {
             </div>
           </div>
         )}
+        {scanResult?.remainingMeals > 0 && scanResult?.remainingMeals <= 3 && (
+          <div style={{background:'#FEF3E2',border:'1px solid #F5C98A',borderRadius:14,padding:'10px 18px',marginBottom:16,maxWidth:280}}>
+            <div style={{fontSize:13,fontWeight:600,color:'#854F0B'}}>⚠️ Only {scanResult.remainingMeals} meal{scanResult.remainingMeals === 1 ? '' : 's'} left</div>
+            <div style={{fontSize:12,color:'#966B2E',marginTop:2}}>Renew soon to avoid missing a meal.</div>
+          </div>
+        )}
         <a href={'/my-meals/' + messId} style={{background:'white',borderRadius:999,padding:'10px 24px',fontSize:14,color:'#999',textDecoration:'none',display:'inline-block'}}>
-          <span style={{color:'#0F6E56',fontWeight:600}}>{scanResult?.remainingMeals}</span> meals remaining <span style={{color:'#ccc'}}>→</span>
+          <span style={{color: scanResult?.remainingMeals <= 3 ? '#A32D2D' : '#0F6E56',fontWeight:600}}>{scanResult?.remainingMeals}</span> meals remaining <span style={{color:'#ccc'}}>→</span>
         </a>
         <button type="button" onClick={() => setStage('closed')} style={{marginTop:32,padding:'12px 32px',borderRadius:12,background:'white',color:'#0F6E56',fontSize:14,fontWeight:500,border:'1px solid #0F6E56',cursor:'pointer'}}>Done</button>
         <style>{`@keyframes messpass-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
