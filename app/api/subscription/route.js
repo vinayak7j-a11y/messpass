@@ -73,12 +73,23 @@ export async function GET(req) {
     // ==========================
     if (messId) {
       const mess = await Mess.findOne({ messId })
+      const pendingReg = mess ? null : await PendingRegistration.findOne({ messId })
+
+      if (!mess && !pendingReg) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+
+      const paymentType = mess ? 'renewal' : 'registration'
+      const pendingPayment = await SubscriptionPayment.findOne({ messId, status: 'pending', type: paymentType })
 
       if (!mess) {
-        return NextResponse.json(
-          { error: 'Mess not found' },
-          { status: 404 }
-        )
+        // Still awaiting first payment/approval — no subscription record yet,
+        // but the frontend needs to know about any payment already submitted
+        // so it can resume at the payment screen instead of plan selection.
+        return NextResponse.json({
+          subscriptionStatus: 'pending_payment',
+          payment: pendingPayment || null
+        })
       }
 
       const now = new Date()
@@ -121,7 +132,8 @@ export async function GET(req) {
         subscriptionExpiresAt: mess.subscriptionExpiresAt,
         daysRemaining,
         inGracePeriod,
-        graceEndsAt
+        graceEndsAt,
+        payment: pendingPayment || null
       })
     }
 

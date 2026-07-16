@@ -18,6 +18,7 @@ export default function Subscribe() {
   const [stage, setStage] = useState('checking')
   const [loading, setLoading] = useState(false)
   const [isRenewal, setIsRenewal] = useState(false)
+  const [statusInfo, setStatusInfo] = useState(null)
   useEffect(() => { 
     const pendingStored = localStorage.getItem('pending_mess')
     const messStored = localStorage.getItem('mess') 
@@ -47,6 +48,7 @@ export default function Subscribe() {
   if (!isNew) {
     const res = await fetch('/api/subscription/status?messId=' + mid)
     const data = await res.json()
+    setStatusInfo(data)
 
     if (data.subscriptionStatus === 'active' && !renewal) {
       window.location.href = '/dashboard'
@@ -117,9 +119,32 @@ if (isRenewal) {
 
   const plan = PLANS.find(p => p.key === selected)
   const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${plan.price}&cu=INR&tn=${encodeURIComponent('MessPass ' + plan.label + ' - ' + messId)}`
+  const statusBanner = renderStatusBanner()
+
+  function renderStatusBanner() {
+    if (!isRenewal || !statusInfo) return null
+    if (statusInfo.subscriptionStatus === 'expired' && !statusInfo.inGracePeriod) {
+      return (
+        <div style={{background:'#FFEAEA',border:'1px solid #F3A5A5',borderRadius:14,padding:'14px 16px',margin:'16px 16px 0'}}>
+          <div style={{fontSize:14,fontWeight:600,color:'#B00020'}}>⛔ Your MessPass subscription is over</div>
+          <div style={{fontSize:13,color:'#8a2020',marginTop:2}}>Subscribe again to continue using MessPass.</div>
+        </div>
+      )
+    }
+    if (statusInfo.subscriptionStatus === 'expired' && statusInfo.inGracePeriod) {
+      return (
+        <div style={{background:'#FFF8E8',border:'1px solid #FAC775',borderRadius:14,padding:'14px 16px',margin:'16px 16px 0'}}>
+          <div style={{fontSize:14,fontWeight:600,color:'#854F0B'}}>⚠️ Your subscription has expired</div>
+          <div style={{fontSize:13,color:'#966B2E',marginTop:2}}>Renew now — your dashboard access ends soon.</div>
+        </div>
+      )
+    }
+    return null
+  }
 
   if (stage === 'pay') return (
     <div style={{minHeight:'100vh',background:'#f5f5f0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+      {statusBanner && <div style={{marginBottom:20,width:'100%',maxWidth:320}}>{statusBanner}</div>}
       <div style={{width:80,height:80,borderRadius:'50%',background:'#FAEEDA',border:'3px solid #FAC775',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px',fontSize:40}}>⏳</div>
       <div style={{fontSize:22,fontWeight:600,color:'#1a1a1a',marginBottom:8}}>{isRenewal ? 'Complete your renewal payment' : 'Complete your payment'}</div>
       <div style={{fontSize:14,color:'#999',marginBottom:24,maxWidth:340}}>
@@ -207,6 +232,7 @@ return (
       </div>
     </div>
   
+    {statusBanner && <div style={{padding:'16px 16px 0'}}>{statusBanner}</div>}
 
       <div style={{padding:'24px 16px'}}>
         {PLANS.map(p => (
